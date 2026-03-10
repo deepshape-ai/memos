@@ -15,7 +15,7 @@ func (s *MCPService) registerPrompts(mcpSrv *mcpserver.MCPServer) {
 		mcp.NewPrompt("capture",
 			mcp.WithPromptDescription("Capture a thought, idea, or note as a new memo. "+
 				"Use this prompt when the user wants to quickly save something. "+
-				"The assistant will call create_memo with the provided content."),
+				"The assistant will call memos_create_memo with the provided content."),
 			mcp.WithArgument("content",
 				mcp.ArgumentDescription("The text to save as a memo"),
 				mcp.RequiredArgument(),
@@ -31,7 +31,7 @@ func (s *MCPService) registerPrompts(mcpSrv *mcpserver.MCPServer) {
 	mcpSrv.AddPrompt(
 		mcp.NewPrompt("daily_log",
 			mcp.WithPromptDescription("Record today's progress as a structured daily log. "+
-				"The assistant will call save_daily_log with properly formatted .plan-style content. "+
+				"The assistant will call memos_save_daily_log with properly formatted .plan-style content. "+
 				"Each line must start with a prefix: * (done), + (to-do), - (note), or ? (question)."),
 			mcp.WithArgument("content",
 				mcp.ArgumentDescription("Free-form description of today's activities; the assistant will reformat into .plan-style prefixes"),
@@ -45,7 +45,7 @@ func (s *MCPService) registerPrompts(mcpSrv *mcpserver.MCPServer) {
 	mcpSrv.AddPrompt(
 		mcp.NewPrompt("review",
 			mcp.WithPromptDescription("Search and review memos on a given topic. "+
-				"The assistant will call search_memos and summarise the results."),
+				"The assistant will call memos_search_memos and summarise the results."),
 			mcp.WithArgument("topic",
 				mcp.ArgumentDescription("Topic or keyword to search for"),
 				mcp.RequiredArgument(),
@@ -63,7 +63,7 @@ func (*MCPService) handleCapturePrompt(_ context.Context, req mcp.GetPromptReque
 
 	tags := req.Params.Arguments["tags"]
 	instruction := fmt.Sprintf(
-		"Please save the following as a new private memo using the create_memo tool.\n\nContent:\n%s",
+		"Please save the following as a new private memo using the memos_create_memo tool.\n\nContent:\n%s",
 		content,
 	)
 	if tags != "" {
@@ -85,7 +85,7 @@ func (*MCPService) handleDailyLogPrompt(_ context.Context, req mcp.GetPromptRequ
 	}
 
 	instruction := fmt.Sprintf(
-		"Please reformat the following into a daily log and save it using the save_daily_log tool with today's date.\n\n"+
+		"Please reformat the following into a daily log and save it using the memos_save_daily_log tool with today's date.\n\n"+
 			"Each line must start with one of these prefixes:\n"+
 			"  * (done/completed items)\n"+
 			"  + (to-do/planned items)\n"+
@@ -110,7 +110,7 @@ func (*MCPService) handleReviewPrompt(_ context.Context, req mcp.GetPromptReques
 	}
 
 	instruction := fmt.Sprintf(
-		"Please use the search_memos tool to find memos about %q, then provide a concise summary of what has been written on this topic, grouped by theme. Include the memo names so the user can reference them.",
+		"Please use the memos_search_memos tool to find memos about %q, then provide a concise summary of what has been written on this topic, grouped by theme. Include the memo names so the user can reference them.",
 		topic,
 	)
 

@@ -23,16 +23,20 @@ PATs are long-lived tokens created in Settings → My Account → Access Tokens.
 
 ## Tools
 
-All tools are scoped to the authenticated user's memos.
+All tools are prefixed with `memos_` for discoverability and to avoid conflicts with other MCP servers. All tools include annotations (`readOnlyHint`, `destructiveHint`, `idempotentHint`) to help clients understand tool behavior.
+
+### Memo Tools
 
 | Tool | Description | Required params | Optional params |
 |---|---|---|---|
-| `list_memos` | List memos | — | `page_size` (int, max 100), `filter` (CEL expression) |
-| `get_memo` | Get a single memo | `name` | — |
-| `search_memos` | Full-text search | `query` | — |
-| `create_memo` | Create a memo | `content` | `visibility` |
-| `update_memo` | Update content or visibility | `name` | `content`, `visibility` |
-| `delete_memo` | Delete a memo | `name` | — |
+| `memos_list_memos` | List memos | — | `page_size` (int, max 100), `page`, `state`, `order_by_pinned`, `filter` (CEL expression) |
+| `memos_get_memo` | Get a single memo | `name` | — |
+| `memos_search_memos` | Full-text search | `query` | — |
+| `memos_create_memo` | Create a memo | `content` | `visibility` |
+| `memos_update_memo` | Update content or visibility | `name` | `content`, `visibility`, `pinned`, `state` |
+| `memos_delete_memo` | Delete a memo | `name` | — |
+| `memos_list_memo_comments` | List comments on a memo | `name` | — |
+| `memos_create_memo_comment` | Add a comment to a memo | `name`, `content` | — |
 
 **`name`** is the memo resource name, e.g. `memos/abc123`.
 
@@ -47,9 +51,9 @@ All tools are scoped to the authenticated user's memos.
 
 | Tool | Description | Required params | Optional params |
 |---|---|---|---|
-| `save_daily_log` | Create or update today's daily log | `date`, `content` | — |
-| `get_daily_log` | Get a daily log by date | `date` | `creator` |
-| `list_daily_logs` | List daily logs with date range | — | `start_date`, `end_date`, `creator`, `page_size` (max 100), `page` |
+| `memos_save_daily_log` | Create or update today's daily log | `date`, `content` | — |
+| `memos_get_daily_log` | Get a daily log by date | `date` | `creator` |
+| `memos_list_daily_logs` | List daily logs with date range | — | `start_date`, `end_date`, `creator`, `page_size` (max 100), `page` |
 
 **`date`** is always `YYYY-MM-DD`.
 
@@ -58,6 +62,20 @@ All tools are scoped to the authenticated user's memos.
 **`content`** must use `.plan`-style line prefixes: `* ` (done), `+ ` (to-do), `- ` (note), `? ` (question). No indentation allowed.
 
 Daily logs are always `PROTECTED` visibility and follow a one-per-user-per-day rule. Only today's log (within a 36-hour window) can be saved; past logs are immutable.
+
+### Tag Tools
+
+| Tool | Description | Required params | Optional params |
+|---|---|---|---|
+| `memos_list_tags` | List all tags with memo counts | — | — |
+
+## Response Format
+
+All tools return JSON responses with consistent structure:
+
+- **Timestamps**: Both Unix (`create_time`, `update_time`) and ISO 8601/RFC3339 (`create_time_iso`, `update_time_iso`) formats
+- **Pagination**: Includes `has_more`, `page`, `page_size` for list operations
+- **Error messages**: Include actionable suggestions for resolution
 
 ## Connecting Claude Code
 
