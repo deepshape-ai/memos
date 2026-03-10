@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:garbagecollected.org)",
+      "Bash(ls:*)",
+      "Bash(grep:*)",
+      "Bash(protoc:*)",
+      "Bash(curl:*)",
+      "Bash(sqlite3:*)",
+      "Bash(docker:*)",
+      "Bash(rm:*)"
+    ]
+  }
+}

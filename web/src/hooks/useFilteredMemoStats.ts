@@ -6,7 +6,9 @@ import type { MemoExplorerContext } from "@/components/MemoExplorer";
 import useCurrentUser from "@/hooks/useCurrentUser";
 import { useMemos } from "@/hooks/useMemoQueries";
 import { useUserStats } from "@/hooks/useUserQueries";
+import { State } from "@/types/proto/api/v1/common_pb";
 import type { StatisticsData } from "@/types/statistics";
+import { combineFilters } from "@/utils/filter";
 
 export interface FilteredMemoStats {
   statistics: StatisticsData;
@@ -33,7 +35,28 @@ export const useFilteredMemoStats = (options: UseFilteredMemoStatsOptions = {}):
   // memos are always excluded regardless of backend version.
   // other contexts: fetch with default params for the fallback memo-based path.
   const exploreVisibilityFilter = currentUser != null ? 'visibility in ["PUBLIC", "PROTECTED"]' : 'visibility in ["PUBLIC"]';
-  const memoQueryParams = context === "explore" ? { filter: exploreVisibilityFilter, pageSize: 1000 } : {};
+  const memoQueryParams = useMemo(() => {
+    switch (context) {
+      case "explore":
+        return {
+          filter: combineFilters(exploreVisibilityFilter, 'memo_type != "DAILY_LOG"'),
+          pageSize: 1000,
+        };
+      case "archived":
+        return {
+          filter: 'memo_type != "DAILY_LOG"',
+          pageSize: 1000,
+          state: State.ARCHIVED,
+        };
+      case "daily-log":
+        return {
+          filter: 'memo_type == "DAILY_LOG"',
+          pageSize: 1000,
+        };
+      default:
+        return {};
+    }
+  }, [context, exploreVisibilityFilter]);
   const { data: memosResponse, isLoading: isLoadingMemos } = useMemos(memoQueryParams);
 
   const data = useMemo(() => {
@@ -41,15 +64,20 @@ export const useFilteredMemoStats = (options: UseFilteredMemoStatsOptions = {}):
     let activityStats: Record<string, number> = {};
     let tagCount: Record<string, number> = {};
 
-    if (context === "explore") {
-      // Tags and activity stats from visibility-filtered memos (no private content).
+    if (context === "explore" || context === "archived" || context === "daily-log") {
+      // Tags and activity stats from route-scoped memo queries.
       for (const memo of memosResponse?.memos ?? []) {
         for (const tag of memo.tags ?? []) {
           tagCount[tag] = (tagCount[tag] ?? 0) + 1;
         }
       }
       const displayDates = (memosResponse?.memos ?? [])
-        .map((memo) => (memo.displayTime ? timestampDate(memo.displayTime) : undefined))
+        .map((memo) => {
+          if (context === "daily-log") {
+            return memo.createTime ? timestampDate(memo.createTime) : undefined;
+          }
+          return memo.displayTime ? timestampDate(memo.displayTime) : undefined;
+        })
         .filter((date): date is Date => date !== undefined)
         .map(toDateString);
       activityStats = countBy(displayDates);

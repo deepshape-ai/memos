@@ -35,7 +35,17 @@ const WeekdayHeader = memo(({ weekDays, size }: WeekdayHeaderProps) => (
 WeekdayHeader.displayName = "WeekdayHeader";
 
 export const MonthCalendar = memo((props: MonthCalendarProps) => {
-  const { month, data, maxCount, size = "default", onClick, className, disableTooltips = false } = props;
+  const {
+    month,
+    data,
+    maxCount,
+    size = "default",
+    onClick,
+    className,
+    disableTooltips = false,
+    selectedDate = "",
+    allowZeroCountClick = false,
+  } = props;
   const t = useTranslate();
   const { generalSetting } = useInstance();
   const today = useTodayDate();
@@ -47,7 +57,7 @@ export const MonthCalendar = memo((props: MonthCalendarProps) => {
     weekDays,
     weekStartDayOffset: generalSetting.weekStartDayOffset,
     today,
-    selectedDate: "",
+    selectedDate,
   });
 
   const flatDays = useMemo(() => weeks.flatMap((week) => week.days), [weeks]);
@@ -66,6 +76,7 @@ export const MonthCalendar = memo((props: MonthCalendarProps) => {
             onClick={onClick}
             size={size}
             disableTooltip={disableTooltips}
+            allowZeroCountClick={allowZeroCountClick}
           />
         ))}
       </div>

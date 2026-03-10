@@ -6,6 +6,8 @@ export interface MonthNavigatorProps {
   visibleMonth: string;
   onMonthChange: (month: string) => void;
   activityStats: Record<string, number>;
+  selectedDate?: string;
+  allowZeroCountClick?: boolean;
 }
 
 export interface StatisticsData {

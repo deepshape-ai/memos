@@ -21,11 +21,61 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type MemoPayload_Type int32
+
+const (
+	MemoPayload_TYPE_UNSPECIFIED MemoPayload_Type = 0
+	MemoPayload_MEMO             MemoPayload_Type = 1
+	MemoPayload_DAILY_LOG        MemoPayload_Type = 100
+)
+
+// Enum value maps for MemoPayload_Type.
+var (
+	MemoPayload_Type_name = map[int32]string{
+		0:   "TYPE_UNSPECIFIED",
+		1:   "MEMO",
+		100: "DAILY_LOG",
+	}
+	MemoPayload_Type_value = map[string]int32{
+		"TYPE_UNSPECIFIED": 0,
+		"MEMO":             1,
+		"DAILY_LOG":        100,
+	}
+)
+
+func (x MemoPayload_Type) Enum() *MemoPayload_Type {
+	p := new(MemoPayload_Type)
+	*p = x
+	return p
+}
+
+func (x MemoPayload_Type) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (MemoPayload_Type) Descriptor() protoreflect.EnumDescriptor {
+	return file_store_memo_proto_enumTypes[0].Descriptor()
+}
+
+func (MemoPayload_Type) Type() protoreflect.EnumType {
+	return &file_store_memo_proto_enumTypes[0]
+}
+
+func (x MemoPayload_Type) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use MemoPayload_Type.Descriptor instead.
+func (MemoPayload_Type) EnumDescriptor() ([]byte, []int) {
+	return file_store_memo_proto_rawDescGZIP(), []int{0, 0}
+}
+
 type MemoPayload struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Property      *MemoPayload_Property  `protobuf:"bytes,1,opt,name=property,proto3" json:"property,omitempty"`
 	Location      *MemoPayload_Location  `protobuf:"bytes,2,opt,name=location,proto3" json:"location,omitempty"`
 	Tags          []string               `protobuf:"bytes,3,rep,name=tags,proto3" json:"tags,omitempty"`
+	Type          MemoPayload_Type       `protobuf:"varint,4,opt,name=type,proto3,enum=memos.store.MemoPayload_Type" json:"type,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -79,6 +129,13 @@ func (x *MemoPayload) GetTags() []string {
 		return x.Tags
 	}
 	return nil
+}
+
+func (x *MemoPayload) GetType() MemoPayload_Type {
+	if x != nil {
+		return x.Type
+	}
+	return MemoPayload_TYPE_UNSPECIFIED
 }
 
 // The calculated properties from the memo content.
@@ -214,11 +271,12 @@ var File_store_memo_proto protoreflect.FileDescriptor
 
 const file_store_memo_proto_rawDesc = "" +
 	"\n" +
-	"\x10store/memo.proto\x12\vmemos.store\"\xa0\x03\n" +
+	"\x10store/memo.proto\x12\vmemos.store\"\x8a\x04\n" +
 	"\vMemoPayload\x12=\n" +
 	"\bproperty\x18\x01 \x01(\v2!.memos.store.MemoPayload.PropertyR\bproperty\x12=\n" +
 	"\blocation\x18\x02 \x01(\v2!.memos.store.MemoPayload.LocationR\blocation\x12\x12\n" +
-	"\x04tags\x18\x03 \x03(\tR\x04tags\x1a\x96\x01\n" +
+	"\x04tags\x18\x03 \x03(\tR\x04tags\x121\n" +
+	"\x04type\x18\x04 \x01(\x0e2\x1d.memos.store.MemoPayload.TypeR\x04type\x1a\x96\x01\n" +
 	"\bProperty\x12\x19\n" +
 	"\bhas_link\x18\x01 \x01(\bR\ahasLink\x12\"\n" +
 	"\rhas_task_list\x18\x02 \x01(\bR\vhasTaskList\x12\x19\n" +
@@ -227,7 +285,11 @@ const file_store_memo_proto_rawDesc = "" +
 	"\bLocation\x12 \n" +
 	"\vplaceholder\x18\x01 \x01(\tR\vplaceholder\x12\x1a\n" +
 	"\blatitude\x18\x02 \x01(\x01R\blatitude\x12\x1c\n" +
-	"\tlongitude\x18\x03 \x01(\x01R\tlongitudeB\x94\x01\n" +
+	"\tlongitude\x18\x03 \x01(\x01R\tlongitude\"5\n" +
+	"\x04Type\x12\x14\n" +
+	"\x10TYPE_UNSPECIFIED\x10\x00\x12\b\n" +
+	"\x04MEMO\x10\x01\x12\r\n" +
+	"\tDAILY_LOG\x10\x02B\x94\x01\n" +
 	"\x0fcom.memos.storeB\tMemoProtoP\x01Z)github.com/usememos/memos/proto/gen/store\xa2\x02\x03MSX\xaa\x02\vMemos.Store\xca\x02\vMemos\\Store\xe2\x02\x17Memos\\Store\\GPBMetadata\xea\x02\fMemos::Storeb\x06proto3"
 
 var (
@@ -242,20 +304,23 @@ func file_store_memo_proto_rawDescGZIP() []byte {
 	return file_store_memo_proto_rawDescData
 }
 
+var file_store_memo_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_store_memo_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_store_memo_proto_goTypes = []any{
-	(*MemoPayload)(nil),          // 0: memos.store.MemoPayload
-	(*MemoPayload_Property)(nil), // 1: memos.store.MemoPayload.Property
-	(*MemoPayload_Location)(nil), // 2: memos.store.MemoPayload.Location
+	(MemoPayload_Type)(0),        // 0: memos.store.MemoPayload.Type
+	(*MemoPayload)(nil),          // 1: memos.store.MemoPayload
+	(*MemoPayload_Property)(nil), // 2: memos.store.MemoPayload.Property
+	(*MemoPayload_Location)(nil), // 3: memos.store.MemoPayload.Location
 }
 var file_store_memo_proto_depIdxs = []int32{
-	1, // 0: memos.store.MemoPayload.property:type_name -> memos.store.MemoPayload.Property
-	2, // 1: memos.store.MemoPayload.location:type_name -> memos.store.MemoPayload.Location
-	2, // [2:2] is the sub-list for method output_type
-	2, // [2:2] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	2, // 0: memos.store.MemoPayload.property:type_name -> memos.store.MemoPayload.Property
+	3, // 1: memos.store.MemoPayload.location:type_name -> memos.store.MemoPayload.Location
+	0, // 2: memos.store.MemoPayload.type:type_name -> memos.store.MemoPayload.Type
+	3, // [3:3] is the sub-list for method output_type
+	3, // [3:3] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_store_memo_proto_init() }
@@ -268,13 +333,14 @@ func file_store_memo_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_store_memo_proto_rawDesc), len(file_store_memo_proto_rawDesc)),
-			NumEnums:      0,
+			NumEnums:      1,
 			NumMessages:   3,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
 		GoTypes:           file_store_memo_proto_goTypes,
 		DependencyIndexes: file_store_memo_proto_depIdxs,
+		EnumInfos:         file_store_memo_proto_enumTypes,
 		MessageInfos:      file_store_memo_proto_msgTypes,
 	}.Build()
 	File_store_memo_proto = out.File

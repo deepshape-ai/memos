@@ -209,6 +209,9 @@ func (r *renderer) renderScalarComparison(field Field, op ComparisonOperator, ri
 	}
 
 	columnExpr := field.columnExpr(r.dialect)
+	if len(field.JSONPath) > 0 {
+		columnExpr = jsonScalarExpr(r.dialect, field)
+	}
 	if lit == nil {
 		switch op {
 		case CompareEq:
@@ -441,6 +444,9 @@ func (r *renderer) renderScalarInCondition(field Field, values []ValueExpr) (ren
 	}
 
 	column := field.columnExpr(r.dialect)
+	if len(field.JSONPath) > 0 {
+		column = jsonScalarExpr(r.dialect, field)
+	}
 	return renderResult{
 		sql: fmt.Sprintf("%s IN (%s)", column, strings.Join(placeholders, ",")),
 	}, nil
@@ -452,6 +458,9 @@ func (r *renderer) renderContainsCondition(cond *ContainsCondition) (renderResul
 		return renderResult{}, errors.Errorf("unknown field %q", cond.Field)
 	}
 	column := field.columnExpr(r.dialect)
+	if len(field.JSONPath) > 0 {
+		column = jsonScalarExpr(r.dialect, field)
+	}
 	arg := fmt.Sprintf("%%%s%%", cond.Value)
 	switch r.dialect {
 	case DialectSQLite:
@@ -541,6 +550,20 @@ func (r *renderer) buildJSONArrayLike(arrayExpr, pattern string) string {
 		return fmt.Sprintf("%s LIKE %s", arrayExpr, r.addArg(pattern))
 	case DialectPostgres:
 		return fmt.Sprintf("(%s)::text LIKE %s", arrayExpr, r.addArg(pattern))
+	default:
+		return ""
+	}
+}
+
+func jsonScalarExpr(d DialectName, field Field) string {
+	column := qualifyColumn(d, field.Column)
+	switch d {
+	case DialectSQLite:
+		return fmt.Sprintf("JSON_EXTRACT(%s, '%s')", column, jsonPath(field))
+	case DialectMySQL:
+		return fmt.Sprintf("JSON_UNQUOTE(JSON_EXTRACT(%s, '%s'))", column, jsonPath(field))
+	case DialectPostgres:
+		return buildPostgresJSONAccessor(column, field.JSONPath, true)
 	default:
 		return ""
 	}

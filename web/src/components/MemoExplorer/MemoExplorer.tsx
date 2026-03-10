@@ -6,7 +6,7 @@ import StatisticsView from "../StatisticsView";
 import ShortcutsSection from "./ShortcutsSection";
 import TagsSection from "./TagsSection";
 
-export type MemoExplorerContext = "home" | "explore" | "archived" | "profile";
+export type MemoExplorerContext = "home" | "daily-log" | "explore" | "archived" | "profile";
 
 export interface MemoExplorerFeatures {
   search?: boolean;
@@ -31,6 +31,13 @@ const getDefaultFeatures = (context: MemoExplorerContext): MemoExplorerFeatures 
         statistics: true,
         shortcuts: false, // Global explore doesn't use shortcuts
         tags: true,
+      };
+    case "daily-log":
+      return {
+        search: false,
+        statistics: true,
+        shortcuts: false,
+        tags: false,
       };
     case "archived":
       return {
@@ -76,7 +83,7 @@ const MemoExplorer = (props: Props) => {
     >
       {features.search && <SearchBar />}
       <div className="mt-1 px-1 w-full">
-        {features.statistics && <StatisticsView statisticsData={statisticsData} />}
+        {features.statistics && <StatisticsView statisticsData={statisticsData} allowZeroCountClick={context === "daily-log"} />}
         {features.shortcuts && currentUser && <ShortcutsSection />}
         {features.tags && <TagsSection readonly={context === "explore"} tagCount={tagCount} />}
       </div>

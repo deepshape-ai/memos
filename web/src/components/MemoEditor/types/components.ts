@@ -1,13 +1,24 @@
 import type { LatLng } from "leaflet";
-import type { Location, Memo, Visibility } from "@/types/proto/api/v1/memo_service_pb";
+import type { Location, Memo, MemoType, Visibility } from "@/types/proto/api/v1/memo_service_pb";
 import type { EditorRefActions } from "../Editor";
 import type { Command } from "../Editor/commands";
+import type { ValidationResult } from "../services/validationService";
+import type { EditorState } from "../state";
 import type { LocationState } from "./insert-menu";
 
 export interface MemoEditorProps {
   className?: string;
   cacheKey?: string;
   placeholder?: string;
+  defaultVisibility?: Visibility;
+  defaultType?: MemoType;
+  defaultCreateTime?: Date;
+  defaultUpdateTime?: Date;
+  hideVisibilitySelector?: boolean;
+  hideInsertMenu?: boolean;
+  hideMetadata?: boolean;
+  hideTimestamps?: boolean;
+  customValidator?: (state: EditorState) => ValidationResult;
   /** Existing memo to edit. When provided, the editor initializes from it without fetching. */
   memo?: Memo;
   parentMemoName?: string;
@@ -23,8 +34,11 @@ export interface EditorContentProps {
 
 export interface EditorToolbarProps {
   onSave: () => void;
+  canSave: boolean;
   onCancel?: () => void;
   memoName?: string;
+  hideVisibilitySelector?: boolean;
+  hideInsertMenu?: boolean;
 }
 
 export interface EditorMetadataProps {

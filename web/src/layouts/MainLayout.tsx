@@ -20,6 +20,7 @@ const MainLayout = () => {
   // Determine context based on current route
   const context: MemoExplorerContext = useMemo(() => {
     if (location.pathname === Routes.ROOT) return "home";
+    if (location.pathname === Routes.DAILY_LOG) return "daily-log";
     if (location.pathname === Routes.EXPLORE) return "explore";
     if (matchPath("/archived", location.pathname)) return "archived";
     if (matchPath("/u/:username", location.pathname)) return "profile";

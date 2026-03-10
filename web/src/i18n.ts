@@ -51,8 +51,12 @@ const LazyImportPlugin: BackendModule = {
   read: function (language, _, callback) {
     const matchedLanguage = findNearestMatchedLanguage(language);
     import(`./locales/${matchedLanguage}.json`)
-      .then((translation: Record<string, unknown>) => {
-        callback(null, translation);
+      .then((module: { default?: Record<string, unknown> } & Record<string, unknown>) => {
+        // Vite dynamic imports return an ES module namespace object where each
+        // valid-identifier key becomes a named export. Keys with hyphens (e.g.
+        // "daily-log") are NOT named exports and only live inside module.default.
+        // Always use the default export to ensure all keys are available.
+        callback(null, module.default ?? module);
       })
       .catch(() => {
         // Fallback to English.

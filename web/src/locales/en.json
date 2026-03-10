@@ -117,6 +117,49 @@
     "tue": "Tue",
     "wed": "Wed"
   },
+  "daily-log": {
+    "title": "Daily Log",
+    "description": "One person, one log, one day. Use the calendar to switch dates and keep entries in single-day .plan style.",
+    "open": "Open Daily Log",
+    "home-entry": "Keep it short. Daily Log is a single per-day route for work notes, decisions, and things learned.",
+    "home-summary": "{{count}} logged today",
+    "home-summary-empty": "No one has logged today yet.",
+    "format": {
+      "toggle": "Format Guide",
+      "title": "Format Guide",
+      "description": "Use flat single-day .plan lines only. No sections, no nested items, no day separators.",
+      "example": "Example"
+    },
+    "legend": {
+      "plain": "No prefix: mentioned today, not finished today",
+      "done": "* done today",
+      "later-done": "+ finished on a later day",
+      "dropped": "- decided against on a later day",
+      "learned": "? learned or confirmed today"
+    },
+    "example": {
+      "plain": "review daily log calendar behavior",
+      "done": "* shipped chinese labels and format guidance",
+      "later-done": "+ finished Docker mirror support later",
+      "dropped": "- dropped a separate daily log service",
+      "learned": "? learned that StatisticsView can be reused directly"
+    },
+    "editor": {
+      "placeholder": "Write today's flat .plan lines here"
+    },
+    "workspace": {
+      "title": "Workspace Logs",
+      "empty": "No other Daily Logs for this date yet."
+    },
+    "no-log-for-date": "No daily log for this date.",
+    "past-readonly": "Past daily logs are read-only. Use +/- prefixes in today's log to annotate past items.",
+    "loading": "Loading...",
+    "validation": {
+      "nested": "Line {{line}} must stay flat. Nested items are not allowed.",
+      "separator": "Line {{line}} must not use day separators.",
+      "prefix": "Line {{line}} has an invalid prefix. Use plain text, *, +, -, or ?."
+    }
+  },
   "editor": {
     "add-your-comment-here": "Add your comment here...",
     "any-thoughts": "Any thoughts...",

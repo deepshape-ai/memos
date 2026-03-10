@@ -76,6 +76,13 @@ func RebuildMemoPayload(memo *store.Memo, markdownService markdown.Service) erro
 		memo.Payload = &storepb.MemoPayload{}
 	}
 
+	// Daily logs are plain-text .plan files — skip tag extraction and property detection.
+	if memo.Payload.Type == storepb.MemoPayload_DAILY_LOG {
+		memo.Payload.Tags = nil
+		memo.Payload.Property = &storepb.MemoPayload_Property{}
+		return nil
+	}
+
 	// Use goldmark service to extract all metadata in a single pass (more efficient)
 	data, err := markdownService.ExtractAll([]byte(memo.Content))
 	if err != nil {

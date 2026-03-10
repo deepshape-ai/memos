@@ -122,6 +122,14 @@ func (s *APIV1Service) RegisterGateway(ctx context.Context, echoServer *echo.Ech
 	gwGroup.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins: []string{"*"},
 	}))
+	// Register SSE endpoint with same CORS as rest of /api/v1.
+	gwGroup.GET("/api/v1/sse", func(c *echo.Context) error {
+		return handleSSE(c, s.SSEHub, auth.NewAuthenticator(s.Store, s.Secret))
+	})
+
+	// Register Daily Log REST API (custom HTTP routes alongside gRPC-Gateway).
+	s.RegisterDailyLogRoutes(gwGroup)
+
 	handler := echo.WrapHandler(gwMux)
 
 	gwGroup.Any("/api/v1/*", handler)

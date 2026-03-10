@@ -3,6 +3,7 @@ import useCurrentUser from "@/hooks/useCurrentUser";
 import { useUser } from "@/hooks/useUserQueries";
 import { cn } from "@/lib/utils";
 import { State } from "@/types/proto/api/v1/common_pb";
+import { isDailyLogMemo } from "@/utils/memo";
 import { isSuperUser } from "@/utils/user";
 import MemoEditor from "../MemoEditor";
 import PreviewImageDialog from "../PreviewImageDialog";
@@ -20,7 +21,7 @@ const MemoView: React.FC<MemoViewProps> = (props: MemoViewProps) => {
   const currentUser = useCurrentUser();
   const creator = useUser(memoData.creator).data;
   const isArchived = memoData.state === State.ARCHIVED;
-  const readonly = memoData.creator !== currentUser?.name && !isSuperUser(currentUser);
+  const readonly = isDailyLogMemo(memoData) || (memoData.creator !== currentUser?.name && !isSuperUser(currentUser));
   const parentPage = parentPageProp || "/";
 
   // NSFW content management: always blur content tagged with NSFW (case-insensitive)

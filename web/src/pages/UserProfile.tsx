@@ -2,7 +2,7 @@ import copy from "copy-to-clipboard";
 import { ExternalLinkIcon, LayoutListIcon, type LucideIcon, MapIcon } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { useParams, useSearchParams } from "react-router-dom";
-import MemoView from "@/components/MemoView";
+import MemoView from "@/components/MemoView/MemoView";
 import PagedMemoList from "@/components/PagedMemoList";
 import UserAvatar from "@/components/UserAvatar";
 import UserMemoMap from "@/components/UserMemoMap";
@@ -12,6 +12,7 @@ import { useUser } from "@/hooks/useUserQueries";
 import { cn } from "@/lib/utils";
 import { State } from "@/types/proto/api/v1/common_pb";
 import { Memo } from "@/types/proto/api/v1/memo_service_pb";
+import { combineFilters } from "@/utils/filter";
 import { useTranslate } from "@/utils/i18n";
 
 type TabView = "memos" | "map";
@@ -86,6 +87,7 @@ const UserProfile = () => {
     includeShortcuts: false,
     includePinned: true,
   });
+  const profileFilter = combineFilters(memoFilter, `memo_type != "DAILY_LOG"`);
 
   const { listSort, orderBy } = useMemoSorting({
     pinnedFirst: true,
@@ -134,7 +136,7 @@ const UserProfile = () => {
                   )}
                   listSort={listSort}
                   orderBy={orderBy}
-                  filter={memoFilter}
+                  filter={profileFilter}
                 />
               ) : (
                 <div className="">

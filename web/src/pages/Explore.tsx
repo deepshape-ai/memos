@@ -1,9 +1,10 @@
-import MemoView from "@/components/MemoView";
+import MemoView from "@/components/MemoView/MemoView";
 import PagedMemoList from "@/components/PagedMemoList";
 import { useMemoFilters, useMemoSorting } from "@/hooks";
 import useCurrentUser from "@/hooks/useCurrentUser";
 import { State } from "@/types/proto/api/v1/common_pb";
 import { Memo, Visibility } from "@/types/proto/api/v1/memo_service_pb";
+import { combineFilters } from "@/utils/filter";
 
 const Explore = () => {
   const currentUser = useCurrentUser();
@@ -20,6 +21,7 @@ const Explore = () => {
     includePinned: false,
     visibilities,
   });
+  const exploreFilter = combineFilters(memoFilter, `memo_type != "DAILY_LOG"`);
 
   // Get sorting logic using unified hook (no pinned sorting)
   const { listSort, orderBy } = useMemoSorting({
@@ -32,7 +34,7 @@ const Explore = () => {
       renderer={(memo: Memo) => <MemoView key={`${memo.name}-${memo.updateTime}`} memo={memo} showCreator showVisibility compact />}
       listSort={listSort}
       orderBy={orderBy}
-      filter={memoFilter}
+      filter={exploreFilter}
       showCreator
     />
   );

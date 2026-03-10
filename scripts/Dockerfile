@@ -1,8 +1,39 @@
-FROM --platform=$BUILDPLATFORM golang:1.25.7-alpine AS backend
+ARG DOCKERHUB_MIRROR=docker.m.daocloud.io
+ARG ALPINE_REPO=https://mirrors.aliyun.com/alpine
+
+FROM ${DOCKERHUB_MIRROR}/library/node:22-alpine AS frontend
+WORKDIR /frontend-build
+
+ARG NPM_REGISTRY=https://registry.npmmirror.com
+ENV PNPM_HOME=/pnpm \
+    PATH=/pnpm:$PATH \
+    npm_config_registry=$NPM_REGISTRY \
+    COREPACK_NPM_REGISTRY=$NPM_REGISTRY
+
+RUN corepack enable
+
+COPY web/package.json web/pnpm-lock.yaml ./web/
+WORKDIR /frontend-build/web
+RUN --mount=type=cache,target=/pnpm/store \
+    pnpm install --frozen-lockfile
+
+WORKDIR /frontend-build
+COPY web ./web
+RUN cd web && pnpm release
+
+FROM --platform=$BUILDPLATFORM ${DOCKERHUB_MIRROR}/library/golang:1.25.7-alpine AS backend
 WORKDIR /backend-build
 
+ARG ALPINE_REPO=https://mirrors.aliyun.com/alpine
+
 # Install build dependencies
-RUN apk add --no-cache git ca-certificates
+RUN sed -i "s#https://dl-cdn.alpinelinux.org/alpine#${ALPINE_REPO}#g" /etc/apk/repositories && \
+    apk add --no-cache git ca-certificates
+
+ARG GOPROXY=https://goproxy.cn,direct
+ARG GOSUMDB=sum.golang.google.cn
+ENV GOPROXY=$GOPROXY \
+    GOSUMDB=$GOSUMDB
 
 # Copy go mod files and download dependencies (cached layer)
 COPY go.mod go.sum ./
@@ -11,9 +42,8 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 
 # Copy source code (use .dockerignore to exclude unnecessary files)
 COPY . .
+COPY --from=frontend /frontend-build/server/router/frontend/dist ./server/router/frontend/dist
 
-# Please build frontend first, so that the static files are available.
-# Refer to `pnpm release` in package.json for the build command.
 ARG TARGETOS TARGETARCH VERSION COMMIT
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
@@ -26,10 +56,13 @@ RUN --mount=type=cache,target=/go/pkg/mod \
       ./cmd/memos
 
 # Use minimal Alpine with security updates
-FROM alpine:3.21 AS monolithic
+FROM ${DOCKERHUB_MIRROR}/library/alpine:3.21 AS monolithic
+
+ARG ALPINE_REPO=https://mirrors.aliyun.com/alpine
 
 # Install runtime dependencies and create non-root user in single layer
-RUN apk add --no-cache tzdata ca-certificates su-exec && \
+RUN sed -i "s#https://dl-cdn.alpinelinux.org/alpine#${ALPINE_REPO}#g" /etc/apk/repositories && \
+    apk add --no-cache tzdata ca-certificates su-exec && \
     addgroup -g 10001 -S nonroot && \
     adduser -u 10001 -S -G nonroot -h /var/opt/memos nonroot && \
     mkdir -p /var/opt/memos /usr/local/memos && \

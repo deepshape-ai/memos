@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/usememos/memos/plugin/filter"
 	storepb "github.com/usememos/memos/proto/gen/store"
@@ -16,13 +15,9 @@ import (
 func (d *DB) CreateMemo(ctx context.Context, create *store.Memo) (*store.Memo, error) {
 	fields := []string{"`uid`", "`creator_id`", "`content`", "`visibility`", "`payload`"}
 	placeholder := []string{"?", "?", "?", "?", "?"}
-	payload := "{}"
-	if create.Payload != nil {
-		payloadBytes, err := protojson.Marshal(create.Payload)
-		if err != nil {
-			return nil, err
-		}
-		payload = string(payloadBytes)
+	payload, err := store.MarshalMemoPayload(create.Payload)
+	if err != nil {
+		return nil, err
 	}
 	args := []any{create.UID, create.CreatorID, create.Content, create.Visibility, payload}
 
@@ -215,11 +210,11 @@ func (d *DB) UpdateMemo(ctx context.Context, update *store.UpdateMemo) error {
 		set, args = append(set, "`pinned` = ?"), append(args, *v)
 	}
 	if v := update.Payload; v != nil {
-		payloadBytes, err := protojson.Marshal(v)
+		payloadStr, err := store.MarshalMemoPayload(v)
 		if err != nil {
 			return err
 		}
-		set, args = append(set, "`payload` = ?"), append(args, string(payloadBytes))
+		set, args = append(set, "`payload` = ?"), append(args, payloadStr)
 	}
 	if len(set) == 0 {
 		return nil

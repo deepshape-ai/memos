@@ -8,6 +8,7 @@ import Home from "@/pages/Home";
 const AdminSignIn = lazy(() => import("@/pages/AdminSignIn"));
 const Archived = lazy(() => import("@/pages/Archived"));
 const AuthCallback = lazy(() => import("@/pages/AuthCallback"));
+const DailyLog = lazy(() => import("@/pages/DailyLog"));
 const Explore = lazy(() => import("@/pages/Explore"));
 const Inboxes = lazy(() => import("@/pages/Inboxes"));
 const MemoDetail = lazy(() => import("@/pages/MemoDetail"));
@@ -47,6 +48,7 @@ const router = createBrowserRouter([
             element: <MainLayout />,
             children: [
               { path: "", element: <Home /> },
+              { path: Routes.DAILY_LOG, element: <DailyLog /> },
               { path: Routes.EXPLORE, element: <Explore /> },
               { path: Routes.ARCHIVED, element: <Archived /> },
               { path: "u/:username", element: <UserProfile /> },

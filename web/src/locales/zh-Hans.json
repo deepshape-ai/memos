@@ -117,6 +117,49 @@
     "tue": "二",
     "wed": "三"
   },
+  "daily-log": {
+    "title": "每日日志",
+    "description": "一人一天一条日志。通过左侧日历切换日期，正文保持单日 .plan 的扁平格式。",
+    "open": "打开每日日志",
+    "home-entry": "保持简短。Daily Log 用来记录每天的进展、决策和新学到的内容，不要写成长报告。",
+    "home-summary": "今天 {{count}} 人已记录",
+    "home-summary-empty": "今天还没有人写日志。",
+    "format": {
+      "toggle": "格式帮助",
+      "title": "格式规范",
+      "description": "只使用单日 .plan 的扁平行格式。不分段、不嵌套、不写日期分隔线。",
+      "example": "规范示例"
+    },
+    "legend": {
+      "plain": "无前缀：今天提到，但今天没有完成",
+      "done": "* 今天完成",
+      "later-done": "+ 在后续某天完成",
+      "dropped": "- 在后续某天决定不做",
+      "learned": "? 今天学到或确认的内容"
+    },
+    "example": {
+      "plain": "检查左侧日历的 daily log 切换是否正确",
+      "done": "* 完成中文标签与格式说明",
+      "later-done": "+ 后续补完 Docker 镜像加速与启动验证",
+      "dropped": "- 放弃单独的 daily log 服务层",
+      "learned": "? 确认现有 StatisticsView 可以复用日历交互"
+    },
+    "editor": {
+      "placeholder": "按单日 .plan 的扁平格式记录今天"
+    },
+    "workspace": {
+      "title": "工作区日志",
+      "empty": "这一天还没有其他人的 Daily Log。"
+    },
+    "no-log-for-date": "这一天没有写日志。",
+    "past-readonly": "过去的日志不可编辑。请在今天的日志中用 +/- 前缀标注之前的事项。",
+    "loading": "加载中...",
+    "validation": {
+      "nested": "第 {{line}} 行必须保持扁平格式，不能嵌套。",
+      "separator": "第 {{line}} 行不能使用日期分隔线。",
+      "prefix": "第 {{line}} 行前缀无效。只允许纯文本、*、+、-、?。"
+    }
+  },
   "editor": {
     "add-your-comment-here": "请输入您的评论...",
     "any-thoughts": "此刻的想法...",

@@ -2489,6 +2489,14 @@ components:
                 content:
                     type: string
                     description: Required. The content of the memo in Markdown format.
+                type:
+                    enum:
+                        - MEMO_TYPE_UNSPECIFIED
+                        - MEMO
+                        - DAILY_LOG
+                    type: string
+                    description: The type of the memo.
+                    format: enum
                 visibility:
                     enum:
                         - VISIBILITY_UNSPECIFIED

@@ -9,6 +9,7 @@ import { handleError } from "@/lib/error";
 import { cn } from "@/lib/utils";
 import { useTranslate } from "@/utils/i18n";
 import { convertVisibilityFromString } from "@/utils/memo";
+import { MemoType } from "@/types/proto/api/v1/memo_service_pb";
 import { EditorContent, EditorMetadata, EditorToolbar, FocusModeExitButton, FocusModeOverlay, TimestampPopover } from "./components";
 import { FOCUS_MODE_STYLES } from "./constants";
 import type { EditorRefActions } from "./Editor";
@@ -30,6 +31,15 @@ const MemoEditorImpl: React.FC<MemoEditorProps> = ({
   parentMemoName,
   autoFocus,
   placeholder,
+  defaultVisibility: defaultVisibilityProp,
+  defaultType,
+  defaultCreateTime,
+  defaultUpdateTime,
+  hideVisibilitySelector = false,
+  hideInsertMenu = false,
+  hideMetadata = false,
+  hideTimestamps = false,
+  customValidator,
   onConfirm,
   onCancel,
 }) => {
@@ -43,9 +53,21 @@ const MemoEditorImpl: React.FC<MemoEditorProps> = ({
   const memoName = memo?.name;
 
   // Get default visibility from user settings
-  const defaultVisibility = userGeneralSetting?.memoVisibility ? convertVisibilityFromString(userGeneralSetting.memoVisibility) : undefined;
+  const defaultVisibility =
+    defaultVisibilityProp ??
+    (userGeneralSetting?.memoVisibility ? convertVisibilityFromString(userGeneralSetting.memoVisibility) : undefined);
 
-  useMemoInit({ editorRef, memo, cacheKey, username: currentUser?.name ?? "", autoFocus, defaultVisibility });
+  useMemoInit({
+    editorRef,
+    memo,
+    cacheKey,
+    username: currentUser?.name ?? "",
+    autoFocus,
+    defaultVisibility,
+    defaultType,
+    defaultCreateTime,
+    defaultUpdateTime,
+  });
 
   // Auto-save content to localStorage
   useAutoSave(state.content, currentUser?.name ?? "", cacheKey);
@@ -57,11 +79,19 @@ const MemoEditorImpl: React.FC<MemoEditorProps> = ({
     dispatch(actions.toggleFocusMode());
   };
 
+  const validation = (() => {
+    const result = validationService.canSave(state);
+    if (!result.valid || !customValidator) {
+      return result;
+    }
+    return customValidator(state);
+  })();
+
   useKeyboard(editorRef, { onSave: handleSave });
 
   async function handleSave() {
     // Validate before saving
-    const { valid, reason } = validationService.canSave(state);
+    const { valid, reason } = validation;
     if (!valid) {
       toast.error(reason || "Cannot save");
       return;
@@ -94,10 +124,22 @@ const MemoEditorImpl: React.FC<MemoEditorProps> = ({
 
       await Promise.all(invalidationPromises);
 
-      // Reset editor state to initial values
-      dispatch(actions.reset());
-      if (!memoName && defaultVisibility) {
-        dispatch(actions.setMetadata({ visibility: defaultVisibility }));
+      // Daily log uses upsert — keep editor content after save so the user
+      // can continue editing. The query invalidation will update the memo prop
+      // via the parent component's React key change.
+      const isDailyLog = defaultType === MemoType.DAILY_LOG;
+      if (!isDailyLog) {
+        // Reset editor state to initial values for regular memos
+        dispatch(actions.reset());
+        if (!memoName && defaultVisibility) {
+          dispatch(actions.setMetadata({ visibility: defaultVisibility }));
+        }
+        if (!memoName && defaultType !== undefined) {
+          dispatch(actions.setMetadata({ type: defaultType }));
+        }
+        if (!memoName && (defaultCreateTime || defaultUpdateTime)) {
+          dispatch(actions.setTimestamps({ createTime: defaultCreateTime, updateTime: defaultUpdateTime }));
+        }
       }
 
       // Notify parent component of successful save
@@ -133,7 +175,7 @@ const MemoEditorImpl: React.FC<MemoEditorProps> = ({
         {/* Exit button is absolutely positioned in top-right corner when active */}
         <FocusModeExitButton isActive={state.ui.isFocusMode} onToggle={handleToggleFocusMode} title={t("editor.exit-focus-mode")} />
 
-        {memoName && (
+        {memoName && !hideTimestamps && (
           <div className="w-full -mb-1">
             <TimestampPopover />
           </div>
@@ -144,8 +186,15 @@ const MemoEditorImpl: React.FC<MemoEditorProps> = ({
 
         {/* Metadata and toolbar grouped together at bottom */}
         <div className="w-full flex flex-col gap-2">
-          <EditorMetadata memoName={memoName} />
-          <EditorToolbar onSave={handleSave} onCancel={onCancel} memoName={memoName} />
+          {!hideMetadata && <EditorMetadata memoName={memoName} />}
+          <EditorToolbar
+            onSave={handleSave}
+            canSave={validation.valid}
+            onCancel={onCancel}
+            memoName={memoName}
+            hideVisibilitySelector={hideVisibilitySelector}
+            hideInsertMenu={hideInsertMenu}
+          />
         </div>
       </div>
     </>

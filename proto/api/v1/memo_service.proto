@@ -103,6 +103,26 @@ service MemoService {
     option (google.api.http) = {delete: "/api/v1/{name=memos/*/reactions/*}"};
     option (google.api.method_signature) = "name";
   }
+
+  // SaveDailyLog creates or updates today's .plan-style daily log.
+  // Upserts by (creator, date): one log per person per day.
+  rpc SaveDailyLog(SaveDailyLogRequest) returns (Memo) {
+    option (google.api.http) = {
+      put: "/api/v1/daily-logs/{date}"
+      body: "*"
+    };
+    option (google.api.method_signature) = "date,content";
+  }
+  // GetDailyLog retrieves a single daily log by date and optional creator.
+  rpc GetDailyLog(GetDailyLogRequest) returns (Memo) {
+    option (google.api.http) = {get: "/api/v1/daily-logs/{date}"};
+    option (google.api.method_signature) = "date";
+  }
+  // ListDailyLogs lists daily logs within a date range.
+  rpc ListDailyLogs(ListDailyLogsRequest) returns (ListDailyLogsResponse) {
+    option (google.api.http) = {get: "/api/v1/daily-logs"};
+    option (google.api.method_signature) = "";
+  }
 }
 
 enum Visibility {
@@ -110,6 +130,13 @@ enum Visibility {
   PRIVATE = 1;
   PROTECTED = 2;
   PUBLIC = 3;
+}
+
+enum MemoType {
+  MEMO_TYPE_UNSPECIFIED = 0;
+  MEMO = 1;
+  // Use a high value to avoid conflicts with upstream memos enum additions.
+  DAILY_LOG = 100;
 }
 
 message Reaction {
@@ -186,6 +213,9 @@ message Memo {
 
   // Required. The content of the memo in Markdown format.
   string content = 7 [(google.api.field_behavior) = REQUIRED];
+
+  // The type of the memo.
+  MemoType type = 8 [(google.api.field_behavior) = OPTIONAL];
 
   // The visibility of the memo.
   Visibility visibility = 9 [(google.api.field_behavior) = REQUIRED];
@@ -508,4 +538,57 @@ message DeleteMemoReactionRequest {
     (google.api.field_behavior) = REQUIRED,
     (google.api.resource_reference) = {type: "memos.api.v1/Reaction"}
   ];
+}
+
+// SaveDailyLogRequest creates or updates a .plan-style daily log.
+message SaveDailyLogRequest {
+  // Required. The date in YYYY-MM-DD format.
+  string date = 1 [(google.api.field_behavior) = REQUIRED];
+
+  // Required. Plain-text content using flat .plan line prefixes.
+  string content = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+// GetDailyLogRequest retrieves a daily log for a specific date.
+message GetDailyLogRequest {
+  // Required. The date in YYYY-MM-DD format.
+  string date = 1 [(google.api.field_behavior) = REQUIRED];
+
+  // Optional. The creator to filter by. Format: users/{user}.
+  // Defaults to the current authenticated user.
+  string creator = 2 [
+    (google.api.field_behavior) = OPTIONAL,
+    (google.api.resource_reference) = {type: "memos.api.v1/User"}
+  ];
+}
+
+// ListDailyLogsRequest lists daily logs within a date range.
+message ListDailyLogsRequest {
+  // Optional. Start date (inclusive) in YYYY-MM-DD format.
+  string start_date = 1 [(google.api.field_behavior) = OPTIONAL];
+
+  // Optional. End date (exclusive) in YYYY-MM-DD format.
+  string end_date = 2 [(google.api.field_behavior) = OPTIONAL];
+
+  // Optional. The creator to filter by. Format: users/{user}.
+  // Empty means all visible logs.
+  string creator = 3 [
+    (google.api.field_behavior) = OPTIONAL,
+    (google.api.resource_reference) = {type: "memos.api.v1/User"}
+  ];
+
+  // Optional. The maximum number of daily logs to return.
+  int32 page_size = 4 [(google.api.field_behavior) = OPTIONAL];
+
+  // Optional. A page token for pagination.
+  string page_token = 5 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// ListDailyLogsResponse is the response for ListDailyLogs.
+message ListDailyLogsResponse {
+  // The list of daily log memos.
+  repeated Memo daily_logs = 1;
+
+  // A token for the next page of results.
+  string next_page_token = 2;
 }

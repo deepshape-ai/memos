@@ -59,6 +59,9 @@ func (s *APIV1Service) ListAllUserStats(ctx context.Context, _ *v1pb.ListAllUser
 		}
 
 		for _, memo := range memos {
+			if isDailyLogMemo(memo) {
+				continue
+			}
 			// Initialize user stats if not exists
 			if _, exists := userMemoStatMap[memo.CreatorID]; !exists {
 				userMemoStatMap[memo.CreatorID] = &v1pb.UserStats{
@@ -182,9 +185,11 @@ func (s *APIV1Service) GetUserStats(ctx context.Context, request *v1pb.GetUserSt
 			break
 		}
 
-		totalMemoCount += int32(len(memos))
-
 		for _, memo := range memos {
+			if isDailyLogMemo(memo) {
+				continue
+			}
+			totalMemoCount++
 			displayTs := memo.CreatedTs
 			if instanceMemoRelatedSetting.DisplayWithUpdateTime {
 				displayTs = memo.UpdatedTs

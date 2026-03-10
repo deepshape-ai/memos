@@ -32,10 +32,12 @@ func (s *APIV1Service) convertMemoFromStore(ctx context.Context, memo *store.Mem
 		UpdateTime:  timestamppb.New(time.Unix(memo.UpdatedTs, 0)),
 		DisplayTime: timestamppb.New(time.Unix(displayTs, 0)),
 		Content:     memo.Content,
+		Type:        v1pb.MemoType_MEMO,
 		Visibility:  convertVisibilityFromStore(memo.Visibility),
 		Pinned:      memo.Pinned,
 	}
 	if memo.Payload != nil {
+		memoMessage.Type = convertMemoTypeFromStore(memo.Payload.Type)
 		memoMessage.Tags = memo.Payload.Tags
 		memoMessage.Property = convertMemoPropertyFromStore(memo.Payload.Property)
 		memoMessage.Location = convertLocationFromStore(memo.Payload.Location)
@@ -131,4 +133,25 @@ func convertVisibilityToStore(visibility v1pb.Visibility) store.Visibility {
 	default:
 		return store.Private
 	}
+}
+
+func convertMemoTypeFromStore(memoType storepb.MemoPayload_Type) v1pb.MemoType {
+	if memoType == storepb.MemoPayload_TYPE_UNSPECIFIED {
+		return v1pb.MemoType_MEMO
+	}
+	return v1pb.MemoType(memoType)
+}
+
+func convertMemoTypeToStore(memoType v1pb.MemoType) storepb.MemoPayload_Type {
+	if memoType == v1pb.MemoType_MEMO_TYPE_UNSPECIFIED {
+		return storepb.MemoPayload_TYPE_UNSPECIFIED
+	}
+	return storepb.MemoPayload_Type(memoType)
+}
+
+func isDailyLogMemo(memo *store.Memo) bool {
+	if memo == nil || memo.Payload == nil {
+		return false
+	}
+	return memo.Payload.Type == storepb.MemoPayload_DAILY_LOG
 }

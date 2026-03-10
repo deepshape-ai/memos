@@ -44,6 +44,22 @@ func (s *APIV1Service) CreateMemo(ctx context.Context, request *v1pb.CreateMemoR
 		CreatorID:  user.ID,
 		Content:    request.Memo.Content,
 		Visibility: convertVisibilityToStore(request.Memo.Visibility),
+		Payload: &storepb.MemoPayload{
+			Type: convertMemoTypeToStore(request.Memo.Type),
+		},
+	}
+	if create.Payload.Type == storepb.MemoPayload_TYPE_UNSPECIFIED {
+		create.Payload.Type = storepb.MemoPayload_MEMO
+	}
+	if create.Payload.Type == storepb.MemoPayload_DAILY_LOG {
+		create.Visibility = store.Protected
+		create.Content = normalizeDailyLogContent(create.Content)
+		if err := validateDailyLogContent(create.Content); err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, err.Error())
+		}
+		if len(request.Memo.Attachments) > 0 || len(request.Memo.Relations) > 0 || request.Memo.Location != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "daily log only supports plain text content")
+		}
 	}
 
 	instanceMemoRelatedSetting, err := s.Store.GetInstanceMemoRelatedSetting(ctx)
@@ -91,16 +107,25 @@ func (s *APIV1Service) CreateMemo(ctx context.Context, request *v1pb.CreateMemoR
 		create.Payload.Location = convertLocationToStore(request.Memo.Location)
 	}
 
-	memo, err := s.Store.CreateMemo(ctx, create)
-	if err != nil {
-		// Check for unique constraint violation (AIP-133 compliance)
-		errMsg := err.Error()
-		if strings.Contains(errMsg, "UNIQUE constraint failed") ||
-			strings.Contains(errMsg, "duplicate key") ||
-			strings.Contains(errMsg, "Duplicate entry") {
-			return nil, status.Errorf(codes.AlreadyExists, "memo with ID %q already exists", memoUID)
+	var memo *store.Memo
+	isNewDailyLog := true
+	if create.Payload.Type == storepb.MemoPayload_DAILY_LOG {
+		memo, isNewDailyLog, err = s.saveDailyLogMemo(ctx, user, request, create)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "failed to save daily log: %v", err)
 		}
-		return nil, err
+	} else {
+		memo, err = s.Store.CreateMemo(ctx, create)
+		if err != nil {
+			// Check for unique constraint violation (AIP-133 compliance)
+			errMsg := err.Error()
+			if strings.Contains(errMsg, "UNIQUE constraint failed") ||
+				strings.Contains(errMsg, "duplicate key") ||
+				strings.Contains(errMsg, "Duplicate entry") {
+				return nil, status.Errorf(codes.AlreadyExists, "memo with ID %q already exists", memoUID)
+			}
+			return nil, err
+		}
 	}
 
 	attachments := []*store.Attachment{}
@@ -136,6 +161,17 @@ func (s *APIV1Service) CreateMemo(ctx context.Context, request *v1pb.CreateMemoR
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to convert memo")
 	}
+	if create.Payload.Type == storepb.MemoPayload_DAILY_LOG && !isNewDailyLog {
+		if err := s.DispatchMemoUpdatedWebhook(ctx, memoMessage); err != nil {
+			slog.Warn("Failed to dispatch memo updated webhook", slog.Any("err", err))
+		}
+		s.SSEHub.Broadcast(&SSEEvent{
+			Type: SSEEventMemoUpdated,
+			Name: memoMessage.Name,
+		})
+		return memoMessage, nil
+	}
+
 	// Try to dispatch webhook when memo is created.
 	if err := s.DispatchMemoCreatedWebhook(ctx, memoMessage); err != nil {
 		slog.Warn("Failed to dispatch memo created webhook", slog.Any("err", err))
@@ -358,6 +394,16 @@ func (s *APIV1Service) UpdateMemo(ctx context.Context, request *v1pb.UpdateMemoR
 	if user == nil {
 		return nil, status.Errorf(codes.Unauthenticated, "user not authenticated")
 	}
+	if isDailyLogMemo(memo) {
+		if !isTodayDailyLog(memo) {
+			return nil, status.Errorf(codes.PermissionDenied, "past daily logs cannot be modified")
+		}
+		for _, path := range request.UpdateMask.Paths {
+			if !isSupportedDailyLogUpdatePath(path) {
+				return nil, status.Errorf(codes.PermissionDenied, "daily log only supports content updates")
+			}
+		}
+	}
 	// Only the creator or admin can update the memo.
 	if memo.CreatorID != user.ID && !isSuperUser(user) {
 		return nil, status.Errorf(codes.PermissionDenied, "permission denied")
@@ -371,6 +417,12 @@ func (s *APIV1Service) UpdateMemo(ctx context.Context, request *v1pb.UpdateMemoR
 			contentLengthLimit, err := s.getContentLengthLimit(ctx)
 			if err != nil {
 				return nil, status.Errorf(codes.Internal, "failed to get content length limit")
+			}
+			if isDailyLogMemo(memo) {
+				request.Memo.Content = normalizeDailyLogContent(request.Memo.Content)
+				if err := validateDailyLogContent(request.Memo.Content); err != nil {
+					return nil, status.Errorf(codes.InvalidArgument, err.Error())
+				}
 			}
 			if len(request.Memo.Content) > contentLengthLimit {
 				return nil, status.Errorf(codes.InvalidArgument, "content too long (max %d characters)", contentLengthLimit)
@@ -495,6 +547,9 @@ func (s *APIV1Service) DeleteMemo(ctx context.Context, request *v1pb.DeleteMemoR
 	}
 	if user == nil {
 		return nil, status.Errorf(codes.Unauthenticated, "user not authenticated")
+	}
+	if isDailyLogMemo(memo) && !isSuperUser(user) {
+		return nil, status.Errorf(codes.PermissionDenied, "daily log is immutable")
 	}
 	// Only the creator or admin can update the memo.
 	if memo.CreatorID != user.ID && !isSuperUser(user) {

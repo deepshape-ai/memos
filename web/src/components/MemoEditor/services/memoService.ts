@@ -2,10 +2,10 @@ import { create } from "@bufbuild/protobuf";
 import { FieldMaskSchema, timestampDate, timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { isEqual } from "lodash-es";
 import { memoServiceClient } from "@/connect";
-import type { Attachment } from "@/types/proto/api/v1/attachment_service_pb";
+import type { Attachment } from "@types/proto/api/v1/attachment_service_pb";
 import { AttachmentSchema } from "@/types/proto/api/v1/attachment_service_pb";
 import type { Memo } from "@/types/proto/api/v1/memo_service_pb";
-import { MemoSchema } from "@/types/proto/api/v1/memo_service_pb";
+import { MemoSchema, MemoType } from "@/types/proto/api/v1/memo_service_pb";
 import type { EditorState } from "../state";
 import { uploadService } from "./uploadService";
 
@@ -28,25 +28,40 @@ function buildUpdateMask(
     content: state.content,
   };
 
+  const isDailyLog = prevMemo.type === MemoType.DAILY_LOG;
+
   if (!isEqual(state.content, prevMemo.content)) {
     mask.add("content");
     patch.content = state.content;
   }
-  if (!isEqual(state.metadata.visibility, prevMemo.visibility)) {
-    mask.add("visibility");
-    patch.visibility = state.metadata.visibility;
-  }
-  if (!isEqual(allAttachments, prevMemo.attachments)) {
-    mask.add("attachments");
-    patch.attachments = toAttachmentReferences(allAttachments);
-  }
-  if (!isEqual(state.metadata.relations, prevMemo.relations)) {
-    mask.add("relations");
-    patch.relations = state.metadata.relations;
-  }
-  if (!isEqual(state.metadata.location, prevMemo.location)) {
-    mask.add("location");
-    patch.location = state.metadata.location;
+
+  // Daily log only supports content and update_time updates
+  if (!isDailyLog) {
+    if (!isEqual(state.metadata.visibility, prevMemo.visibility)) {
+      mask.add("visibility");
+      patch.visibility = state.metadata.visibility;
+    }
+    if (!isEqual(allAttachments, prevMemo.attachments)) {
+      mask.add("attachments");
+      patch.attachments = toAttachmentReferences(allAttachments);
+    }
+    if (!isEqual(state.metadata.relations, prevMemo.relations)) {
+      mask.add("relations");
+      patch.relations = state.metadata.relations;
+    }
+    if (!isEqual(state.metadata.location, prevMemo.location)) {
+      mask.add("location");
+      patch.location = state.metadata.location;
+    }
+
+    // Handle custom timestamps for non-daily-log memos
+    if (state.timestamps.createTime) {
+      const prevCreateTime = prevMemo.createTime ? timestampDate(prevMemo.createTime) : undefined;
+      if (!isEqual(state.timestamps.createTime, prevCreateTime)) {
+        mask.add("create_time");
+        patch.createTime = timestampFromDate(state.timestamps.createTime);
+      }
+    }
   }
 
   // Auto-update timestamp if content changed
@@ -54,14 +69,7 @@ function buildUpdateMask(
     mask.add("update_time");
   }
 
-  // Handle custom timestamps
-  if (state.timestamps.createTime) {
-    const prevCreateTime = prevMemo.createTime ? timestampDate(prevMemo.createTime) : undefined;
-    if (!isEqual(state.timestamps.createTime, prevCreateTime)) {
-      mask.add("create_time");
-      patch.createTime = timestampFromDate(state.timestamps.createTime);
-    }
-  }
+  // Handle update_time for daily log and regular memos
   if (state.timestamps.updateTime) {
     const prevUpdateTime = prevMemo.updateTime ? timestampDate(prevMemo.updateTime) : undefined;
     if (!isEqual(state.timestamps.updateTime, prevUpdateTime)) {
@@ -104,6 +112,7 @@ export const memoService = {
     // 3. Create new memo or comment
     const memoData = create(MemoSchema, {
       content: state.content,
+      type: state.metadata.type,
       visibility: state.metadata.visibility,
       attachments: toAttachmentReferences(allAttachments),
       relations: state.metadata.relations,
@@ -128,6 +137,7 @@ export const memoService = {
       content: memo.content,
       metadata: {
         visibility: memo.visibility,
+        type: memo.type,
         attachments: memo.attachments,
         relations: memo.relations,
         location: memo.location,

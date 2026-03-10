@@ -27,3 +27,5 @@ dist
 
 # Git worktrees
 .worktrees/
+
+.claude

@@ -28,6 +28,8 @@ export interface MonthCalendarProps {
   onClick?: (date: string) => void;
   className?: string;
   disableTooltips?: boolean;
+  selectedDate?: string;
+  allowZeroCountClick?: boolean;
 }
 
 export interface YearCalendarProps {
@@ -36,4 +38,6 @@ export interface YearCalendarProps {
   onYearChange: (year: number) => void;
   onDateClick: (date: string) => void;
   className?: string;
+  selectedDate?: string;
+  allowZeroCountClick?: boolean;
 }

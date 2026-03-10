@@ -11,6 +11,15 @@ message MemoPayload {
 
   repeated string tags = 3;
 
+  Type type = 4;
+
+  enum Type {
+    TYPE_UNSPECIFIED = 0;
+    MEMO = 1;
+    // Use a high value to avoid conflicts with upstream memos enum additions.
+    DAILY_LOG = 100;
+  }
+
   // The calculated properties from the memo content.
   message Property {
     bool has_link = 1;

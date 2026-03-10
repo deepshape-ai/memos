@@ -1,4 +1,5 @@
-import { Visibility } from "@/types/proto/api/v1/memo_service_pb";
+import type { Memo } from "@/types/proto/api/v1/memo_service_pb";
+import { MemoType, Visibility } from "@/types/proto/api/v1/memo_service_pb";
 
 export const convertVisibilityFromString = (visibility: string) => {
   switch (visibility) {
@@ -25,3 +26,5 @@ export const convertVisibilityToString = (visibility: Visibility) => {
       return "PRIVATE";
   }
 };
+
+export const isDailyLogMemo = (memo?: Pick<Memo, "type"> | null) => memo?.type === MemoType.DAILY_LOG;

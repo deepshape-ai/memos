@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import type { Memo, Visibility } from "@/types/proto/api/v1/memo_service_pb";
+import type { Memo, MemoType, Visibility } from "@/types/proto/api/v1/memo_service_pb";
 import type { EditorRefActions } from "../Editor";
 import { cacheService, memoService } from "../services";
 import { useEditorContext } from "../state";
@@ -11,9 +11,22 @@ interface UseMemoInitOptions {
   username: string;
   autoFocus?: boolean;
   defaultVisibility?: Visibility;
+  defaultType?: MemoType;
+  defaultCreateTime?: Date;
+  defaultUpdateTime?: Date;
 }
 
-export const useMemoInit = ({ editorRef, memo, cacheKey, username, autoFocus, defaultVisibility }: UseMemoInitOptions) => {
+export const useMemoInit = ({
+  editorRef,
+  memo,
+  cacheKey,
+  username,
+  autoFocus,
+  defaultVisibility,
+  defaultType,
+  defaultCreateTime,
+  defaultUpdateTime,
+}: UseMemoInitOptions) => {
   const { actions, dispatch } = useEditorContext();
   const initializedRef = useRef(false);
 
@@ -31,10 +44,33 @@ export const useMemoInit = ({ editorRef, memo, cacheKey, username, autoFocus, de
       if (defaultVisibility !== undefined) {
         dispatch(actions.setMetadata({ visibility: defaultVisibility }));
       }
+      if (defaultType !== undefined) {
+        dispatch(actions.setMetadata({ type: defaultType }));
+      }
+      if (defaultCreateTime || defaultUpdateTime) {
+        dispatch(
+          actions.setTimestamps({
+            createTime: defaultCreateTime,
+            updateTime: defaultUpdateTime,
+          }),
+        );
+      }
     }
 
     if (autoFocus) {
       setTimeout(() => editorRef.current?.focus(), 100);
     }
-  }, [memo, cacheKey, username, autoFocus, defaultVisibility, actions, dispatch, editorRef]);
+  }, [
+    memo,
+    cacheKey,
+    username,
+    autoFocus,
+    defaultVisibility,
+    defaultType,
+    defaultCreateTime,
+    defaultUpdateTime,
+    actions,
+    dispatch,
+    editorRef,
+  ]);
 };
