@@ -8,7 +8,8 @@
       "Bash(curl:*)",
       "Bash(sqlite3:*)",
       "Bash(docker:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(echo Session: $SESSION:*)"
     ]
   }
 }
