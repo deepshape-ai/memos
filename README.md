@@ -1,57 +1,53 @@
 # Memos
 
-<img align="right" height="96px" src="https://raw.githubusercontent.com/usememos/.github/refs/heads/main/assets/logo-rounded.png" alt="Memos" />
+A self-hosted, open-source note-taking service. Fork of [usememos/memos](https://github.com/usememos/memos) with additional features: Daily Log and MCP (Model Context Protocol) server integration.
 
-An open-source, self-hosted note-taking service. Your thoughts, your data, your control — no tracking, no ads, no subscription fees.
+## Fork Features
 
-[![Home](https://img.shields.io/badge/🏠-usememos.com-blue?style=flat-square)](https://usememos.com)
-[![Live Demo](https://img.shields.io/badge/✨-Try%20Demo-orange?style=flat-square)](https://demo.usememos.com/)
-[![Docs](https://img.shields.io/badge/📚-Documentation-green?style=flat-square)](https://usememos.com/docs)
-[![Discord](https://img.shields.io/badge/💬-Discord-5865f2?style=flat-square&logo=discord&logoColor=white)](https://discord.gg/tfPJa4UmAv)
-[![Docker Pulls](https://img.shields.io/docker/pulls/neosmemo/memos?style=flat-square&logo=docker)](https://hub.docker.com/r/neosmemo/memos)
+### Daily Log
 
-<img src="https://raw.githubusercontent.com/usememos/.github/refs/heads/main/assets/demo.png" alt="Memos Demo Screenshot" height="512" />
+A dedicated memo type for time-series daily notes.
 
-### 💎 Featured Sponsors
+- Each date has exactly one log entry, accessed via `/daily-log` in the UI
+- Structured content format with `.plan`-style line prefixes (`* `, `+ `, `- `, `? `)
+- Content validation enforcing prefix formatting and no indentation
+- Immutability: only the current day's log (within a 36-hour window) can be edited; past logs are read-only
+- Always workspace-visible (PROTECTED visibility)
+- Timezone-aware date boundaries
+- Calendar view showing daily log activity
+- REST API: `PUT/GET/DELETE /api/v1/daily-logs/:date`, `GET /api/v1/daily-logs` (with date range filtering and pagination)
 
-[**Warp** — The AI-powered terminal built for speed and collaboration](https://go.warp.dev/memos)
+### MCP Server
 
-<a href="https://go.warp.dev/memos" target="_blank" rel="noopener">
-  <img src="https://raw.githubusercontent.com/warpdotdev/brand-assets/main/Github/Sponsor/Warp-Github-LG-02.png" alt="Warp - The AI-powered terminal built for speed and collaboration" width="512" />
-</a>
+An embedded [Model Context Protocol](https://modelcontextprotocol.io) server that exposes memo operations to AI assistants (Claude Code, Cursor, Zed, etc.).
 
-<p></p>
+- Endpoint: `POST /mcp` (tool calls), `GET /mcp` (SSE stream)
+- Authentication via Personal Access Tokens (Bearer header)
+- Tools: `list_memos`, `get_memo`, `search_memos`, `create_memo`, `update_memo`, `delete_memo`, `list_tags`
+- Resources: memo resources indexed by UID
+- Prompts: `capture` (quick memo creation), `review` (search and summarize)
 
-[**TestMu AI** - The world’s first full-stack Agentic AI Quality Engineering platform](https://www.testmuai.com/?utm_medium=sponsor&utm_source=memos)
-  
-<a href="https://www.testmuai.com/?utm_medium=sponsor&utm_source=memos" target="_blank" rel="noopener">
-  <img src="https://usememos.com/sponsors/testmu.svg" alt="TestMu AI" height="36" />
-</a>
+Connection example:
 
-<p></p>
+```bash
+claude mcp add --transport http memos http://localhost:5230/mcp \
+  --header "Authorization: Bearer <your-PAT>"
+```
 
-[**SSD Nodes** - Affordable VPS hosting for self-hosters](https://ssdnodes.com/?utm_source=memos&utm_medium=sponsor)
-  
-<a href="https://ssdnodes.com/?utm_source=memos&utm_medium=sponsor" target="_blank" rel="noopener">
-  <img src="https://usememos.com/sponsors/ssd-nodes.svg" alt="SSD Nodes" height="72" />
-</a>
+See [server/router/mcp/README.md](server/router/mcp/README.md) for full documentation.
 
-## Overview
+## Upstream Features
 
-Memos is a privacy-first, self-hosted knowledge base for personal notes, team wikis, and knowledge management. Built with Go and React, it runs as a single binary with minimal resource usage.
-
-## Features
-
-- **Privacy-First** — Self-hosted on your infrastructure with zero telemetry, no tracking, and no ads.
-- **Markdown Native** — Full markdown support with plain text storage. Your data is always portable.
-- **Lightweight** — Single Go binary with a React frontend. Low memory footprint, starts in seconds.
-- **Easy to Deploy** — One-line Docker install. Supports SQLite, MySQL, and PostgreSQL.
-- **Developer-Friendly** — Full REST and gRPC APIs for integration with existing workflows.
-- **Clean Interface** — Minimal design with dark mode and mobile-responsive layout.
+- Timeline-first UI for instant capture
+- Self-hosted with full data ownership, Markdown storage, zero telemetry
+- Single Go binary, lightweight Docker image
+- SQLite, MySQL, or PostgreSQL backends
+- REST and gRPC APIs
+- MIT license
 
 ## Quick Start
 
-### Docker (Recommended)
+### Docker
 
 ```bash
 docker run -d \
@@ -61,51 +57,33 @@ docker run -d \
   neosmemo/memos:stable
 ```
 
-Open `http://localhost:5230` and start writing!
+Open `http://localhost:5230` to start.
 
-### Try the Live Demo
+### Build from Source
 
-Don't want to install yet? Try our [live demo](https://demo.usememos.com/) first!
+```bash
+# Backend
+go run ./cmd/memos --port 8081
 
-### Other Installation Methods
+# Frontend (in web/)
+pnpm install
+pnpm dev
+```
 
-- **Docker Compose** - Recommended for production deployments
-- **Pre-built Binaries** - Available for Linux, macOS, and Windows
-- **Kubernetes** - Helm charts and manifests available
-- **Build from Source** - For development and customization
+See the upstream [installation guide](https://usememos.com/docs/deploy) for Docker Compose, Kubernetes, and binary options.
 
-See our [installation guide](https://usememos.com/docs/deploy) for detailed instructions.
+## Tech Stack
 
-## Contributing
-
-Contributions are welcome — bug reports, feature suggestions, pull requests, documentation, and translations.
-
-- [Report bugs](https://github.com/usememos/memos/issues/new?template=bug_report.md)
-- [Suggest features](https://github.com/usememos/memos/issues/new?template=feature_request.md)
-- [Submit pull requests](https://github.com/usememos/memos/pulls)
-- [Improve documentation](https://github.com/usememos/memos/tree/main/docs)
-- [Help with translations](https://github.com/usememos/memos/tree/main/web/src/locales)
-
-## Sponsors
-
-Love Memos? [Sponsor us on GitHub](https://github.com/sponsors/usememos) to help keep the project growing!
-
-## Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=usememos/memos&type=Date)](https://star-history.com/#usememos/memos&Date)
+| Layer    | Technology                                         |
+|----------|----------------------------------------------------|
+| Backend  | Go 1.25, Echo v5, Connect RPC + gRPC-Gateway       |
+| Frontend | React 18, TypeScript, Vite, Tailwind CSS v4         |
+| API      | Protocol Buffers, REST, gRPC                        |
+| Database | SQLite, MySQL, PostgreSQL                           |
+| Build    | Multi-stage Docker (Alpine 3.21), multi-arch        |
 
 ## License
 
-Memos is open-source software licensed under the [MIT License](LICENSE).
+MIT License. See [LICENSE](LICENSE).
 
-## Privacy Policy
-
-Memos is built with privacy as a core principle. As a self-hosted application, all your data stays on your infrastructure. There is no telemetry, no tracking, and no data collection. See our [Privacy Policy](https://usememos.com/privacy) for details.
-
----
-
-**[Website](https://usememos.com)** • **[Documentation](https://usememos.com/docs)** • **[Demo](https://demo.usememos.com/)** • **[Discord](https://discord.gg/tfPJa4UmAv)** • **[X/Twitter](https://x.com/usememos)**
-
-<a href="https://vercel.com/oss">
-  <img alt="Vercel OSS Program" src="https://vercel.com/oss/program-badge.svg" />
-</a>
+Upstream project: [usememos/memos](https://github.com/usememos/memos)
