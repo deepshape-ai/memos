@@ -241,6 +241,15 @@ func (r *renderer) renderScalarComparison(field Field, op ComparisonOperator, ri
 		return renderResult{}, errors.Errorf("unsupported data type %q for field %s", field.Type, field.Name)
 	}
 
+	// For JSON fields, != comparisons must also match NULL values.
+	// In SQL, NULL != 'value' evaluates to NULL (falsy), which incorrectly
+	// excludes rows where the JSON key is absent.
+	if op == CompareNeq && len(field.JSONPath) > 0 {
+		return renderResult{
+			sql: fmt.Sprintf("(%s IS NULL OR %s %s %s)", columnExpr, columnExpr, sqlOperator(op), placeholder),
+		}, nil
+	}
+
 	return renderResult{
 		sql: fmt.Sprintf("%s %s %s", columnExpr, sqlOperator(op), placeholder),
 	}, nil
