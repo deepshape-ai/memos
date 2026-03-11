@@ -1,8 +1,8 @@
-# Production deployment template for deepshape-ai/memos fork.
+# Production deployment template for deepshape/memos fork.
 # Copy to server, adjust image tag, then: docker compose up -d
 services:
   memos:
-    image: deepshape-ai/memos:0.26.2-ds.20260311
+    image: deepshape/memos:0.26.2-ds.20260311
     container_name: memos
     restart: unless-stopped
     ports:

@@ -30,7 +30,6 @@ func (s *MCPService) RegisterRoutes(echoServer *echo.Echo) {
 	s.registerMemoTools(mcpSrv)
 	s.registerTagTools(mcpSrv)
 	s.registerDailyLogTools(mcpSrv)
-	s.registerMemoResources(mcpSrv)
 	s.registerPrompts(mcpSrv)
 
 	httpHandler := mcpserver.NewStreamableHTTPServer(mcpSrv)

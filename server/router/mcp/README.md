@@ -96,9 +96,7 @@ claude mcp add --scope user --transport http memos http://localhost:5230/mcp \
 | File | Responsibility |
 |---|---|
 | `mcp.go` | `MCPService` struct, constructor, route registration |
-| `auth_middleware.go` | Echo middleware — validates Bearer token, sets user ID in context |
 | `tools_memo.go` | Tool registration and memo tool handlers |
 | `tools_tag.go` | Tag tool registration and handler |
 | `tools_daily_log.go` | Daily log tool registration and three daily-log handlers |
-| `resources_memo.go` | MCP resource template for `memo://memos/{uid}` |
 | `prompts.go` | MCP prompts: capture, daily_log, review |

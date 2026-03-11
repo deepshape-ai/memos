@@ -128,6 +128,9 @@ const MemoEditorImpl: React.FC<MemoEditorProps> = ({
       // can continue editing. The query invalidation will update the memo prop
       // via the parent component's React key change.
       const isDailyLog = defaultType === MemoType.DAILY_LOG;
+      if (isDailyLog) {
+        toast.success(t("daily-log.saved"));
+      }
       if (!isDailyLog) {
         // Reset editor state to initial values for regular memos
         dispatch(actions.reset());

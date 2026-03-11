@@ -1,10 +1,10 @@
 # Memos Fork 运维手册
 
-## 1. 线上升级：neosmemo/memos:0.25.3 -> deepshape-ai/memos:0.26.2-ds.20260311
+## 1. 线上升级：neosmemo/memos:0.25.3 -> deepshape/memos:0.26.2-ds.20260311
 
 ### 前置条件
 
-- fork镜像已推送到 Docker Hub: `deepshape-ai/memos:0.26.2-ds.20260311`
+- fork镜像已推送到 Docker Hub: `deepshape/memos:0.26.2-ds.20260311`
 - 线上当前运行: `neosmemo/memos:0.25.3`，数据目录挂载在宿主机上
 
 ### 升级步骤
@@ -24,7 +24,7 @@ docker stop memos && docker rm memos
 cat > docker-compose.yml << 'EOF'
 services:
   memos:
-    image: deepshape-ai/memos:0.26.2-ds.20260311
+    image: deepshape/memos:0.26.2-ds.20260311
     container_name: memos
     restart: unless-stopped
     ports:
@@ -112,7 +112,7 @@ git push origin v0.26.2-ds.20260320
 
 # 3. GitHub Actions 自动构建并推送 Docker 镜像
 #    触发条件：tag 匹配 v*.*.*-ds.*
-#    产物：deepshape-ai/memos:0.26.2-ds.20260320 + deepshape-ai/memos:latest
+#    产物：deepshape/memos:0.26.2-ds.20260320 + deepshape/memos:latest
 ```
 
 ### 同步上游 stable release
@@ -149,7 +149,7 @@ cd /opt/memos
 cp -r data "data.bak.$(date +%Y%m%d%H%M)"
 
 # 更新镜像 tag
-sed -i 's|image:.*|image: deepshape-ai/memos:<NEW_VERSION>|' docker-compose.yml
+sed -i 's|image:.*|image: deepshape/memos:<NEW_VERSION>|' docker-compose.yml
 
 # 部署
 docker compose pull

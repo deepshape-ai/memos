@@ -151,6 +151,7 @@
       "title": "Workspace Logs",
       "empty": "No other Daily Logs for this date yet."
     },
+    "saved": "Daily log saved",
     "no-log-for-date": "No daily log for this date.",
     "past-readonly": "Past daily logs are read-only. Use +/- prefixes in today's log to annotate past items.",
     "loading": "Loading...",
