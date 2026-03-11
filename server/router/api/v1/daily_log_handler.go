@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/labstack/echo/v5"
+	"github.com/lithammer/shortuuid/v4"
 
 	v1pb "github.com/usememos/memos/proto/gen/api/v1"
 	storepb "github.com/usememos/memos/proto/gen/store"
@@ -210,10 +211,7 @@ func (s *APIV1Service) handleSaveDailyLog(c *echo.Context) error {
 		return jsonError(c, http.StatusBadRequest, fmt.Sprintf("content too long (max %d characters)", contentLengthLimit))
 	}
 
-	memoUID, err := ValidateAndGenerateUID("")
-	if err != nil {
-		return jsonError(c, http.StatusInternalServerError, "failed to generate memo ID")
-	}
+	memoUID := shortuuid.New()
 
 	createdTs := dayStart.Unix()
 	create := &store.Memo{
