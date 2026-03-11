@@ -1,10 +1,10 @@
 # Memos Fork 运维手册
 
-## 1. 线上升级：neosmemo/memos:0.25.3 -> deepshape/memos:0.26.2-ds.20260311
+## 1. 线上升级：neosmemo/memos:0.25.3 -> deepshape/memos:0.26.2-ds.20260312
 
 ### 前置条件
 
-- fork镜像已推送到 Docker Hub: `deepshape/memos:0.26.2-ds.20260311`
+- fork镜像已推送到 Docker Hub: `deepshape/memos:0.26.2-ds.20260312`
 - 线上当前运行: `neosmemo/memos:0.25.3`，数据目录挂载在宿主机上
 
 ### 升级步骤
@@ -24,7 +24,7 @@ docker stop memos && docker rm memos
 cat > docker-compose.yml << 'EOF'
 services:
   memos:
-    image: deepshape/memos:0.26.2-ds.20260311
+    image: deepshape/memos:0.26.2-ds.20260312
     container_name: memos
     restart: unless-stopped
     ports:
@@ -95,7 +95,7 @@ v{upstream基线}-ds.{YYYYMMDD}
 示例：
 
 ```
-v0.26.2-ds.20260311    当前版本
+v0.26.2-ds.20260312    当前版本
 v0.26.2-ds.20260320    同基线下的迭代
 v0.28.0-ds.20260601    同步上游 v0.28.0 后的首版
 ```

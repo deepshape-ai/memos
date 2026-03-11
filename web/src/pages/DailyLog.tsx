@@ -157,9 +157,7 @@ const DailyLog = () => {
             {t("daily-log.no-log-for-date")}
           </div>
         )}
-        {!isToday && (
-          <p className="text-center text-xs text-muted-foreground">{t("daily-log.past-readonly")}</p>
-        )}
+        {!isToday && <p className="text-center text-xs text-muted-foreground">{t("daily-log.past-readonly")}</p>}
 
         {/* Workspace logs (always visible) */}
         <section className="flex flex-col gap-2">
@@ -175,9 +173,7 @@ const DailyLog = () => {
               {t("daily-log.workspace.empty")}
             </div>
           ) : (
-            workspaceDailyLogs.map((memo: Memo) => (
-              <WorkspaceDailyLogCard key={`${memo.name}-${memo.displayTime}`} memo={memo} />
-            ))
+            workspaceDailyLogs.map((memo: Memo) => <WorkspaceDailyLogCard key={`${memo.name}-${memo.displayTime}`} memo={memo} />)
           )}
         </section>
       </div>

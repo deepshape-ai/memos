@@ -1,7 +1,7 @@
 ARG DOCKERHUB_MIRROR=docker.m.daocloud.io
 ARG ALPINE_REPO=https://mirrors.aliyun.com/alpine
 
-FROM ${DOCKERHUB_MIRROR}/library/node:22-alpine AS frontend
+FROM --platform=$BUILDPLATFORM ${DOCKERHUB_MIRROR}/library/node:22-alpine AS frontend
 WORKDIR /frontend-build
 
 ARG NPM_REGISTRY=https://registry.npmmirror.com
