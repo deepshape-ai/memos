@@ -1,11 +1,9 @@
-name: Build Stable Image
+name: Build Fork Image
 
 on:
   push:
-    branches:
-      - "release/**"
     tags:
-      - "v[0-9]+.[0-9]+.[0-9]+"
+      - "v*.*.*-ds.*"
 
 jobs:
   prepare:
@@ -16,11 +14,7 @@ jobs:
       - name: Extract version
         id: version
         run: |
-          if [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
-            echo "version=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
-          else
-            echo "version=${GITHUB_REF_NAME#release/}" >> $GITHUB_OUTPUT
-          fi
+          echo "version=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
 
   build-frontend:
     runs-on: ubuntu-latest
@@ -92,13 +86,6 @@ jobs:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ github.token }}
-
       - name: Build and push by digest
         id: build
         uses: docker/build-push-action@v6
@@ -108,7 +95,7 @@ jobs:
           platforms: ${{ matrix.platform }}
           cache-from: type=gha,scope=build-${{ matrix.platform }}
           cache-to: type=gha,mode=max,scope=build-${{ matrix.platform }}
-          outputs: type=image,name=neosmemo/memos,push-by-digest=true,name-canonical=true,push=true
+          outputs: type=image,name=deepshape-ai/memos,push-by-digest=true,name-canonical=true,push=true
 
       - name: Export digest
         run: |
@@ -146,12 +133,10 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: |
-            neosmemo/memos
-            ghcr.io/usememos/memos
+            deepshape-ai/memos
           tags: |
-            type=semver,pattern={{version}},value=${{ needs.prepare.outputs.version }}
-            type=semver,pattern={{major}}.{{minor}},value=${{ needs.prepare.outputs.version }}
-            type=raw,value=stable
+            type=raw,value=${{ needs.prepare.outputs.version }}
+            type=raw,value=latest
           flavor: |
             latest=false
           labels: |
@@ -163,22 +148,14 @@ jobs:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ github.token }}
-
       - name: Create manifest list and push
         working-directory: /tmp/digests
         run: |
           docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
-            $(printf 'neosmemo/memos@sha256:%s ' *)
+            $(printf 'deepshape-ai/memos@sha256:%s ' *)
         env:
           DOCKER_METADATA_OUTPUT_JSON: ${{ steps.meta.outputs.json }}
 
-      - name: Inspect images
+      - name: Inspect image
         run: |
-          docker buildx imagetools inspect neosmemo/memos:stable
-          docker buildx imagetools inspect ghcr.io/usememos/memos:stable
+          docker buildx imagetools inspect deepshape-ai/memos:${{ needs.prepare.outputs.version }}
