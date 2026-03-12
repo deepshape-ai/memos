@@ -90,7 +90,6 @@ func dailyLogFilter(startTs, endTs *int64) string {
 	return strings.Join(parts, " && ")
 }
 
-
 // parseDayStart parses dateStr as YYYY-MM-DD and returns the start-of-day.
 // If timezone is provided (e.g. "Asia/Shanghai", "+08:00"), the day starts
 // at midnight in that timezone; otherwise UTC midnight is used.
@@ -123,7 +122,7 @@ func parseLocation(tz string) (*time.Location, error) {
 			return time.FixedZone(tz, offset), nil
 		}
 	}
-	return nil, fmt.Errorf("invalid timezone %q: use IANA name (e.g. Asia/Shanghai) or offset (e.g. +08:00)", tz)
+	return nil, errors.Errorf("invalid timezone %q: use IANA name (e.g. Asia/Shanghai) or offset (e.g. +08:00)", tz)
 }
 
 // findDailyLogForDate finds the user's daily log for the given day.
