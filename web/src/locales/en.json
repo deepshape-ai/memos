@@ -131,11 +131,11 @@
       "example": "Example"
     },
     "legend": {
-      "plain": "No prefix: mentioned today, not finished today",
-      "done": "* done today",
-      "later-done": "+ finished on a later day",
-      "dropped": "- decided against on a later day",
-      "learned": "? learned or confirmed today"
+      "done": "* → completed today",
+      "later-done": "+ → planned for later",
+      "dropped": "- → note or decided against",
+      "learned": "? → learned or open question",
+      "plain": "No prefix → mentioned but not finished"
     },
     "example": {
       "plain": "review daily log calendar behavior",

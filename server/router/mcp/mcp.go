@@ -26,6 +26,34 @@ func NewMCPService(store *store.Store, secret string) *MCPService {
 func (s *MCPService) RegisterRoutes(echoServer *echo.Echo) {
 	mcpSrv := mcpserver.NewMCPServer("Memos", "1.0.0",
 		mcpserver.WithToolCapabilities(false),
+		mcpserver.WithInstructions(
+			"Memos is a personal knowledge management system with two content types:\n\n"+
+				"## Memo\n"+
+				"Free-form notes in Markdown for thoughts, ideas, links, or any content.\n"+
+				"Supports #tag syntax, visibility control (PRIVATE/PROTECTED/PUBLIC), pinning, and archiving.\n\n"+
+				"## Daily Log\n"+
+				"A structured daily record inspired by Unix .plan files. Each user has exactly one log per day.\n"+
+				"Content uses line prefixes: `* ` (completed work), `+ ` (planned/to-do), `- ` (notes), `? ` (open questions).\n"+
+				"Only today's log can be edited (36-hour window); past logs are immutable. Always PROTECTED visibility.\n\n"+
+				"Example daily log:\n"+
+				"```\n"+
+				"* shipped auth module to staging\n"+
+				"* fixed pagination bug in list API\n"+
+				"+ write unit tests for auth\n"+
+				"- team decided to use PostgreSQL\n"+
+				"? should we add rate limiting before launch?\n"+
+				"```\n\n"+
+				"## When to use which\n"+
+				"- Recording daily progress or standup notes → memos_save_daily_log\n"+
+				"- Capturing ideas, references, or free-form notes → memos_create_memo\n"+
+				"- Searching past content → memos_search_memos\n\n"+
+				"## Typical daily log workflow\n"+
+				"1. Get today's log with memos_get_daily_log to see existing content\n"+
+				"2. Append new lines and save with memos_save_daily_log (this replaces the full content)\n\n"+
+				"## Timezone\n"+
+				"Daily log tools accept an optional `timezone` parameter (e.g. 'Asia/Shanghai', '+08:00').\n"+
+				"It defaults to +08:00. Pass the correct timezone to ensure date boundaries match the user's local calendar day.\n",
+		),
 	)
 	s.registerMemoTools(mcpSrv)
 	s.registerTagTools(mcpSrv)

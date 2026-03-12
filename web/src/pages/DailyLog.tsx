@@ -117,12 +117,12 @@ const DailyLog = () => {
                 <p className="text-sm text-muted-foreground">{t("daily-log.format.description")}</p>
                 <p className="mt-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">{t("daily-log.format.example")}</p>
               </div>
-              <div className="grid gap-2 text-sm text-muted-foreground sm:grid-cols-2">
-                <p>{t("daily-log.legend.plain")}</p>
+              <div className="flex flex-col gap-1 text-sm text-muted-foreground">
                 <p>{t("daily-log.legend.done")}</p>
                 <p>{t("daily-log.legend.later-done")}</p>
                 <p>{t("daily-log.legend.dropped")}</p>
                 <p>{t("daily-log.legend.learned")}</p>
+                <p>{t("daily-log.legend.plain")}</p>
               </div>
               <DailyLogContent content={dailyLogExampleLines.join("\n")} className="rounded-md bg-muted px-3 py-3" />
             </div>

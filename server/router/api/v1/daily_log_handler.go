@@ -2,6 +2,7 @@ package v1
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -80,7 +81,7 @@ func jsonError(c *echo.Context, code int, msg string) error {
 func parseDatePathParam(dateStr string) (time.Time, error) {
 	t, err := time.Parse("2006-01-02", dateStr)
 	if err != nil {
-		return time.Time{}, fmt.Errorf("invalid date format, expected YYYY-MM-DD: %w", err)
+		return time.Time{}, errors.New("invalid date format, expected YYYY-MM-DD: " + err.Error())
 	}
 	return t, nil
 }
@@ -91,7 +92,7 @@ func parseCreatorQueryParam(raw string) (*int32, error) {
 	}
 	id, err := ExtractUserIDFromName(raw)
 	if err != nil {
-		return nil, fmt.Errorf("invalid creator: expected format users/{id}")
+		return nil, errors.New("invalid creator: expected format users/{id}")
 	}
 	return &id, nil
 }

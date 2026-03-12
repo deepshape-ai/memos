@@ -55,7 +55,7 @@ func (s *APIV1Service) CreateMemo(ctx context.Context, request *v1pb.CreateMemoR
 		create.Visibility = store.Protected
 		create.Content = normalizeDailyLogContent(create.Content)
 		if err := validateDailyLogContent(create.Content); err != nil {
-			return nil, status.Errorf(codes.InvalidArgument, err.Error())
+			return nil, status.Errorf(codes.InvalidArgument, "%s", err.Error())
 		}
 		if len(request.Memo.Attachments) > 0 || len(request.Memo.Relations) > 0 || request.Memo.Location != nil {
 			return nil, status.Errorf(codes.InvalidArgument, "daily log only supports plain text content")
@@ -421,7 +421,7 @@ func (s *APIV1Service) UpdateMemo(ctx context.Context, request *v1pb.UpdateMemoR
 			if isDailyLogMemo(memo) {
 				request.Memo.Content = normalizeDailyLogContent(request.Memo.Content)
 				if err := validateDailyLogContent(request.Memo.Content); err != nil {
-					return nil, status.Errorf(codes.InvalidArgument, err.Error())
+					return nil, status.Errorf(codes.InvalidArgument, "%s", err.Error())
 				}
 			}
 			if len(request.Memo.Content) > contentLengthLimit {

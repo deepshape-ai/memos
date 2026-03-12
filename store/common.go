@@ -4,8 +4,9 @@ import (
 	"encoding/json"
 	"strconv"
 
-	storepb "github.com/usememos/memos/proto/gen/store"
 	"google.golang.org/protobuf/encoding/protojson"
+
+	storepb "github.com/usememos/memos/proto/gen/store"
 )
 
 var (
@@ -33,7 +34,7 @@ func MarshalMemoPayload(payload *storepb.MemoPayload) (string, error) {
 	// replace it with the correct string name from the Go-level enum map.
 	var raw map[string]json.RawMessage
 	if err := json.Unmarshal(bytes, &raw); err != nil {
-		return string(bytes), nil
+		return string(bytes), nil //nolint:nilerr // fallback to raw protojson output on unmarshal failure
 	}
 	if typeVal, ok := raw["type"]; ok {
 		// Check if it was serialized as a number.

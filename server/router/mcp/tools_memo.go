@@ -182,7 +182,9 @@ func marshalJSON(v any) (string, error) {
 
 func (s *MCPService) registerMemoTools(mcpSrv *mcpserver.MCPServer) {
 	mcpSrv.AddTool(mcp.NewTool("memos_list_memos",
-		mcp.WithDescription("List memos visible to the caller. Authenticated users see their own memos plus public and protected memos; unauthenticated callers see only public memos."),
+		mcp.WithDescription("List memos (free-form Markdown notes) visible to the caller. "+
+			"Authenticated users see their own memos plus public/protected memos; unauthenticated callers see only public memos. "+
+			"For structured daily records, use memos_list_daily_logs instead."),
 		mcp.WithReadOnlyHintAnnotation(true),
 		mcp.WithIdempotentHintAnnotation(true),
 		mcp.WithOpenWorldHintAnnotation(false),
@@ -205,12 +207,14 @@ func (s *MCPService) registerMemoTools(mcpSrv *mcpserver.MCPServer) {
 	), s.handleGetMemo)
 
 	mcpSrv.AddTool(mcp.NewTool("memos_create_memo",
-		mcp.WithDescription("Create a new memo. Requires authentication."),
+		mcp.WithDescription("Create a new memo for capturing thoughts, ideas, links, or any free-form content in Markdown. "+
+			"Use #tag syntax inline for categorization (e.g. '#work project update'). "+
+			"For structured daily progress tracking, use memos_save_daily_log instead."),
 		mcp.WithReadOnlyHintAnnotation(false),
 		mcp.WithDestructiveHintAnnotation(false),
 		mcp.WithIdempotentHintAnnotation(false),
 		mcp.WithOpenWorldHintAnnotation(false),
-		mcp.WithString("content", mcp.Required(), mcp.Description("Memo content in Markdown. Use #tag syntax for tagging.")),
+		mcp.WithString("content", mcp.Required(), mcp.Description("Memo content in Markdown. Use #tag syntax for tagging (e.g. '#project launched new API').")),
 		mcp.WithString("visibility",
 			mcp.Enum("PRIVATE", "PROTECTED", "PUBLIC"),
 			mcp.Description("Visibility (default: PRIVATE)"),
@@ -291,7 +295,7 @@ func (s *MCPService) handleListMemos(ctx context.Context, req mcp.CallToolReques
 	if state := req.GetString("state", "NORMAL"); state != "" {
 		rs, err := parseRowStatus(state)
 		if err != nil {
-			return mcp.NewToolResultError(err.Error() + " Use list_memos with state=NORMAL or state=ARCHIVED."), nil
+			return mcp.NewToolResultError(err.Error() + " Use list_memos with state=NORMAL or state=ARCHIVED."), nil //nolint:nilerr // MCP tool error
 		}
 		rowStatus = &rs
 	}
@@ -343,7 +347,7 @@ func (s *MCPService) handleGetMemo(ctx context.Context, req mcp.CallToolRequest)
 
 	uid, err := parseMemoUID(req.GetString("name", ""))
 	if err != nil {
-		return mcp.NewToolResultError(err.Error() + ` Use format "memos/<uid>" where uid is the memo identifier.`), nil
+		return mcp.NewToolResultError(err.Error() + ` Use format "memos/<uid>" where uid is the memo identifier.`), nil //nolint:nilerr // MCP tool error
 	}
 
 	memo, err := s.store.GetMemo(ctx, &store.FindMemo{UID: &uid})
@@ -354,7 +358,7 @@ func (s *MCPService) handleGetMemo(ctx context.Context, req mcp.CallToolRequest)
 		return mcp.NewToolResultError(fmt.Sprintf("memo not found: %s. Use memos_list_memos to see available memos.", uid)), nil
 	}
 	if err := checkMemoAccess(memo, userID); err != nil {
-		return mcp.NewToolResultError(err.Error() + " Ensure you have permission to access this memo, or try listing public memos."), nil
+		return mcp.NewToolResultError(err.Error() + " Ensure you have permission to access this memo, or try listing public memos."), nil //nolint:nilerr // MCP tool error
 	}
 
 	out, err := marshalJSON(storeMemoToJSON(memo))
@@ -367,7 +371,7 @@ func (s *MCPService) handleGetMemo(ctx context.Context, req mcp.CallToolRequest)
 func (s *MCPService) handleCreateMemo(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	userID, err := extractUserID(ctx)
 	if err != nil {
-		return mcp.NewToolResultError(err.Error() + " Create a Personal Access Token in Settings > My Account > Access Tokens."), nil
+		return mcp.NewToolResultError(err.Error() + " Create a Personal Access Token in Settings > My Account > Access Tokens."), nil //nolint:nilerr // MCP tool error
 	}
 
 	content := req.GetString("content", "")
@@ -400,12 +404,12 @@ func (s *MCPService) handleCreateMemo(ctx context.Context, req mcp.CallToolReque
 func (s *MCPService) handleUpdateMemo(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	userID, err := extractUserID(ctx)
 	if err != nil {
-		return mcp.NewToolResultError(err.Error() + " Create a Personal Access Token in Settings > My Account > Access Tokens."), nil
+		return mcp.NewToolResultError(err.Error() + " Create a Personal Access Token in Settings > My Account > Access Tokens."), nil //nolint:nilerr // MCP tool error
 	}
 
 	uid, err := parseMemoUID(req.GetString("name", ""))
 	if err != nil {
-		return mcp.NewToolResultError(err.Error() + ` Use format "memos/<uid>" where uid is the memo identifier.`), nil
+		return mcp.NewToolResultError(err.Error() + ` Use format "memos/<uid>" where uid is the memo identifier.`), nil //nolint:nilerr // MCP tool error
 	}
 
 	memo, err := s.store.GetMemo(ctx, &store.FindMemo{UID: &uid})
@@ -464,12 +468,12 @@ func (s *MCPService) handleUpdateMemo(ctx context.Context, req mcp.CallToolReque
 func (s *MCPService) handleDeleteMemo(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	userID, err := extractUserID(ctx)
 	if err != nil {
-		return mcp.NewToolResultError(err.Error() + " Create a Personal Access Token in Settings > My Account > Access Tokens."), nil
+		return mcp.NewToolResultError(err.Error() + " Create a Personal Access Token in Settings > My Account > Access Tokens."), nil //nolint:nilerr // MCP tool error
 	}
 
 	uid, err := parseMemoUID(req.GetString("name", ""))
 	if err != nil {
-		return mcp.NewToolResultError(err.Error() + ` Use format "memos/<uid>" where uid is the memo identifier.`), nil
+		return mcp.NewToolResultError(err.Error() + ` Use format "memos/<uid>" where uid is the memo identifier.`), nil //nolint:nilerr // MCP tool error
 	}
 
 	memo, err := s.store.GetMemo(ctx, &store.FindMemo{UID: &uid})
@@ -530,7 +534,7 @@ func (s *MCPService) handleListMemoComments(ctx context.Context, req mcp.CallToo
 
 	uid, err := parseMemoUID(req.GetString("name", ""))
 	if err != nil {
-		return mcp.NewToolResultError(err.Error() + ` Use format "memos/<uid>" where uid is the memo identifier.`), nil
+		return mcp.NewToolResultError(err.Error() + ` Use format "memos/<uid>" where uid is the memo identifier.`), nil //nolint:nilerr // MCP tool error
 	}
 
 	parent, err := s.store.GetMemo(ctx, &store.FindMemo{UID: &uid})
@@ -541,7 +545,7 @@ func (s *MCPService) handleListMemoComments(ctx context.Context, req mcp.CallToo
 		return mcp.NewToolResultError(fmt.Sprintf("memo not found: %s. Use memos_list_memos to see available memos.", uid)), nil
 	}
 	if err := checkMemoAccess(parent, userID); err != nil {
-		return mcp.NewToolResultError(err.Error() + " Ensure you have permission to access this memo."), nil
+		return mcp.NewToolResultError(err.Error() + " Ensure you have permission to access this memo."), nil //nolint:nilerr // MCP tool error
 	}
 
 	relationType := store.MemoRelationComment
@@ -583,12 +587,12 @@ func (s *MCPService) handleListMemoComments(ctx context.Context, req mcp.CallToo
 func (s *MCPService) handleCreateMemoComment(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	userID, err := extractUserID(ctx)
 	if err != nil {
-		return mcp.NewToolResultError(err.Error() + " Create a Personal Access Token in Settings > My Account > Access Tokens."), nil
+		return mcp.NewToolResultError(err.Error() + " Create a Personal Access Token in Settings > My Account > Access Tokens."), nil //nolint:nilerr // MCP tool error
 	}
 
 	uid, err := parseMemoUID(req.GetString("name", ""))
 	if err != nil {
-		return mcp.NewToolResultError(err.Error() + ` Use format "memos/<uid>" where uid is the memo identifier.`), nil
+		return mcp.NewToolResultError(err.Error() + ` Use format "memos/<uid>" where uid is the memo identifier.`), nil //nolint:nilerr // MCP tool error
 	}
 	content := req.GetString("content", "")
 	if content == "" {
@@ -603,7 +607,7 @@ func (s *MCPService) handleCreateMemoComment(ctx context.Context, req mcp.CallTo
 		return mcp.NewToolResultError(fmt.Sprintf("memo not found: %s. Use memos_list_memos to see available memos.", uid)), nil
 	}
 	if err := checkMemoAccess(parent, userID); err != nil {
-		return mcp.NewToolResultError(err.Error() + " Ensure you have permission to access this memo."), nil
+		return mcp.NewToolResultError(err.Error() + " Ensure you have permission to access this memo."), nil //nolint:nilerr // MCP tool error
 	}
 
 	comment, err := s.store.CreateMemo(ctx, &store.Memo{

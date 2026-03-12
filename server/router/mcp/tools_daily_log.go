@@ -90,42 +90,110 @@ func dailyLogFilter(startTs, endTs *int64) string {
 	return strings.Join(parts, " && ")
 }
 
+
+// parseDayStart parses dateStr as YYYY-MM-DD and returns the start-of-day.
+// If timezone is provided (e.g. "Asia/Shanghai", "+08:00"), the day starts
+// at midnight in that timezone; otherwise UTC midnight is used.
+func parseDayStart(dateStr, timezone string) (time.Time, error) {
+	if timezone == "" {
+		timezone = "+08:00"
+	}
+	loc, err := parseLocation(timezone)
+	if err != nil {
+		return time.Time{}, err
+	}
+	t, err := time.ParseInLocation("2006-01-02", dateStr, loc)
+	if err != nil {
+		return time.Time{}, err
+	}
+	return t, nil
+}
+
+// parseLocation parses a timezone string as either an IANA name or a fixed
+// offset like "+08:00", "-05:00", "+0800", "+08".
+func parseLocation(tz string) (*time.Location, error) {
+	// Try IANA name first.
+	if loc, err := time.LoadLocation(tz); err == nil {
+		return loc, nil
+	}
+	// Try fixed offset formats: "+08:00", "-05:00", "+0800", "+08".
+	for _, layout := range []string{"-07:00", "-0700", "-07"} {
+		if t, err := time.Parse(layout, tz); err == nil {
+			_, offset := t.Zone()
+			return time.FixedZone(tz, offset), nil
+		}
+	}
+	return nil, fmt.Errorf("invalid timezone %q: use IANA name (e.g. Asia/Shanghai) or offset (e.g. +08:00)", tz)
+}
+
+// findDailyLogForDate finds the user's daily log for the given day.
+// dayStart is midnight in the caller's timezone (or UTC if unknown).
+func (s *MCPService) findDailyLogForDate(ctx context.Context, creatorID int32, dayStart time.Time) (*store.Memo, error) {
+	startTs := dayStart.Unix()
+	endTs := dayStart.Add(24 * time.Hour).Unix()
+	limit := 1
+	rowStatus := store.Normal
+	return s.store.GetMemo(ctx, &store.FindMemo{
+		CreatorID:       &creatorID,
+		RowStatus:       &rowStatus,
+		ExcludeComments: true,
+		Filters:         []string{dailyLogFilter(&startTs, &endTs)},
+		Limit:           &limit,
+	})
+}
+
 // ---------------------------------------------------------------------------
 // Tool registration
 // ---------------------------------------------------------------------------
 
 func (s *MCPService) registerDailyLogTools(mcpSrv *mcpserver.MCPServer) {
 	mcpSrv.AddTool(mcp.NewTool("memos_save_daily_log",
-		mcp.WithDescription("Create or update today's daily log. Content must use .plan-style line prefixes: "+
-			`"* " (done), "+ " (to-do), "- " (note), "? " (question). `+
-			"Each date has exactly one log per user. Only today's log can be saved; past logs are immutable. "+
-			"Visibility is always PROTECTED. Requires authentication."),
+		mcp.WithDescription("Create or update today's daily log — a structured daily record of work. "+
+			"Each user has exactly one log per day. Only today's log can be saved; past logs are immutable (36-hour window). "+
+			"Visibility is always PROTECTED. This call replaces the full content, so include all lines.\n\n"+
+			"Content must use line prefixes (prefix + space + text):\n"+
+			"  * = completed work (e.g. '* shipped auth module')\n"+
+			"  + = planned/to-do (e.g. '+ write unit tests')\n"+
+			"  - = note/observation (e.g. '- team chose PostgreSQL')\n"+
+			"  ? = open question (e.g. '? add rate limiting?')\n"+
+			"Lines without a prefix are also allowed (mentioned but not finished today). "+
+			"No indentation, no sections, no day separators."),
 		mcp.WithReadOnlyHintAnnotation(false),
 		mcp.WithDestructiveHintAnnotation(false),
 		mcp.WithIdempotentHintAnnotation(true),
 		mcp.WithOpenWorldHintAnnotation(false),
 		mcp.WithString("date", mcp.Required(), mcp.Description("Date for the log entry (YYYY-MM-DD). Must be today's date.")),
-		mcp.WithString("content", mcp.Required(), mcp.Description(`Daily log content with .plan-style prefixes, e.g. "* finished auth\n+ TODO: write tests"`)),
+		mcp.WithString("timezone", mcp.Description(`Caller's timezone, e.g. "Asia/Shanghai" or "+08:00". Ensures correct date matching when the server is in a different timezone. Defaults to UTC.`)),
+		mcp.WithString("content", mcp.Required(), mcp.Description(
+			"Full daily log content. Each line starts with a prefix: * (done), + (to-do), - (note), ? (question), or no prefix.\n"+
+				"Example:\n"+
+				"* shipped auth module to staging\n"+
+				"+ write unit tests for auth\n"+
+				"- team decided to use PostgreSQL\n"+
+				"? should we add rate limiting before launch?")),
 	), s.handleSaveDailyLog)
 
 	mcpSrv.AddTool(mcp.NewTool("memos_get_daily_log",
-		mcp.WithDescription("Get a daily log by date. Defaults to the caller's log. Requires authentication."),
+		mcp.WithDescription("Get a daily log by date. Returns the log content, date, creator, and whether it is still editable. "+
+			"Defaults to the caller's own log. Use memos_list_daily_logs to browse multiple dates."),
 		mcp.WithReadOnlyHintAnnotation(true),
 		mcp.WithIdempotentHintAnnotation(true),
 		mcp.WithOpenWorldHintAnnotation(false),
 		mcp.WithString("date", mcp.Required(), mcp.Description("Date to retrieve (YYYY-MM-DD)")),
+		mcp.WithString("timezone", mcp.Description(`Caller's timezone, e.g. "Asia/Shanghai" or "+08:00". Defaults to +08:00.`)),
 		mcp.WithString("creator", mcp.Description(`Optional creator filter, e.g. "users/1". Defaults to the authenticated user.`)),
 	), s.handleGetDailyLog)
 
 	mcpSrv.AddTool(mcp.NewTool("memos_list_daily_logs",
 		mcp.WithDescription("List daily logs with optional date range and creator filter. "+
-			"Visibility rules: own logs are always visible; others' logs require PROTECTED or PUBLIC visibility. "+
-			"Requires authentication."),
+			"Own logs are always visible; others' logs require PROTECTED or PUBLIC visibility. "+
+			"Results are ordered by date descending."),
 		mcp.WithReadOnlyHintAnnotation(true),
 		mcp.WithIdempotentHintAnnotation(true),
 		mcp.WithOpenWorldHintAnnotation(false),
 		mcp.WithString("start_date", mcp.Description("Inclusive start date (YYYY-MM-DD)")),
 		mcp.WithString("end_date", mcp.Description("Exclusive end date (YYYY-MM-DD)")),
+		mcp.WithString("timezone", mcp.Description(`Caller's timezone, e.g. "Asia/Shanghai" or "+08:00". Defaults to +08:00.`)),
 		mcp.WithString("creator", mcp.Description(`Optional creator filter, e.g. "users/1"`)),
 		mcp.WithNumber("page_size", mcp.Description("Maximum logs to return (1–100, default 20)")),
 		mcp.WithNumber("page", mcp.Description("Zero-based page index for pagination (default 0)")),
@@ -139,16 +207,16 @@ func (s *MCPService) registerDailyLogTools(mcpSrv *mcpserver.MCPServer) {
 func (s *MCPService) handleSaveDailyLog(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	userID, err := extractUserID(ctx)
 	if err != nil {
-		return mcp.NewToolResultError(err.Error() + " Create a Personal Access Token in Settings > My Account > Access Tokens."), nil
+		return mcp.NewToolResultError(err.Error() + " Create a Personal Access Token in Settings > My Account > Access Tokens."), nil //nolint:nilerr // MCP tool error
 	}
 
 	dateStr := req.GetString("date", "")
 	if dateStr == "" {
 		return mcp.NewToolResultError("date is required (YYYY-MM-DD). Provide today's date."), nil
 	}
-	dayStart, err := time.Parse("2006-01-02", dateStr)
+	dayStart, err := parseDayStart(dateStr, req.GetString("timezone", ""))
 	if err != nil {
-		return mcp.NewToolResultError("invalid date format, expected YYYY-MM-DD (e.g., 2024-01-15)."), nil
+		return mcp.NewToolResultError("invalid date or timezone. Use YYYY-MM-DD and optionally a timezone like Asia/Shanghai or +08:00."), nil //nolint:nilerr // MCP tool error
 	}
 
 	content := normalizeDailyLogContent(req.GetString("content", ""))
@@ -156,21 +224,10 @@ func (s *MCPService) handleSaveDailyLog(ctx context.Context, req mcp.CallToolReq
 		return mcp.NewToolResultError("content must not be empty. Use .plan-style prefixes: * (done), + (to-do), - (note), ? (question)."), nil
 	}
 	if err := validateDailyLogContent(content); err != nil {
-		return mcp.NewToolResultError(err.Error() + " Each line must start with * + - or ? followed by a space. No indentation allowed."), nil
+		return mcp.NewToolResultError(err.Error() + " Each line must start with * + - or ? followed by a space. No indentation allowed."), nil //nolint:nilerr // MCP tool error
 	}
 
-	// Find existing log for the day.
-	startTs := dayStart.Unix()
-	endTs := dayStart.Add(24 * time.Hour).Unix()
-	limit := 1
-	rowStatus := store.Normal
-	existing, err := s.store.GetMemo(ctx, &store.FindMemo{
-		CreatorID:       &userID,
-		RowStatus:       &rowStatus,
-		ExcludeComments: true,
-		Filters:         []string{dailyLogFilter(&startTs, &endTs)},
-		Limit:           &limit,
-	})
+	existing, err := s.findDailyLogForDate(ctx, userID, dayStart)
 	if err != nil {
 		return mcp.NewToolResultError(fmt.Sprintf("failed to find daily log: %v", err)), nil
 	}
@@ -233,38 +290,28 @@ func (s *MCPService) handleSaveDailyLog(ctx context.Context, req mcp.CallToolReq
 func (s *MCPService) handleGetDailyLog(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	userID, err := extractUserID(ctx)
 	if err != nil {
-		return mcp.NewToolResultError(err.Error() + " Create a Personal Access Token in Settings > My Account > Access Tokens."), nil
+		return mcp.NewToolResultError(err.Error() + " Create a Personal Access Token in Settings > My Account > Access Tokens."), nil //nolint:nilerr // MCP tool error
 	}
 
 	dateStr := req.GetString("date", "")
 	if dateStr == "" {
 		return mcp.NewToolResultError("date is required (YYYY-MM-DD). Provide a date like 2024-01-15."), nil
 	}
-	dayStart, err := time.Parse("2006-01-02", dateStr)
+	dayStart, err := parseDayStart(dateStr, req.GetString("timezone", ""))
 	if err != nil {
-		return mcp.NewToolResultError("invalid date format, expected YYYY-MM-DD (e.g., 2024-01-15)."), nil
+		return mcp.NewToolResultError("invalid date or timezone. Use YYYY-MM-DD and optionally a timezone like Asia/Shanghai or +08:00."), nil //nolint:nilerr // MCP tool error
 	}
 
 	creatorID := userID
 	if raw := req.GetString("creator", ""); raw != "" {
 		id, parseErr := parseCreatorName(raw)
 		if parseErr != nil {
-			return mcp.NewToolResultError(parseErr.Error() + ` Use format "users/<id>".`), nil
+			return mcp.NewToolResultError(parseErr.Error() + ` Use format "users/<id>".`), nil //nolint:nilerr // MCP tool error
 		}
 		creatorID = id
 	}
 
-	startTs := dayStart.Unix()
-	endTs := dayStart.Add(24 * time.Hour).Unix()
-	limit := 1
-	rowStatus := store.Normal
-	memo, err := s.store.GetMemo(ctx, &store.FindMemo{
-		CreatorID:       &creatorID,
-		RowStatus:       &rowStatus,
-		ExcludeComments: true,
-		Filters:         []string{dailyLogFilter(&startTs, &endTs)},
-		Limit:           &limit,
-	})
+	memo, err := s.findDailyLogForDate(ctx, creatorID, dayStart)
 	if err != nil {
 		return mcp.NewToolResultError(fmt.Sprintf("failed to query daily log: %v", err)), nil
 	}
@@ -275,7 +322,7 @@ func (s *MCPService) handleGetDailyLog(ctx context.Context, req mcp.CallToolRequ
 	// Access control: own logs always visible; others' need PROTECTED/PUBLIC.
 	if memo.CreatorID != userID {
 		if err := checkMemoAccess(memo, userID); err != nil {
-			return mcp.NewToolResultError(err.Error() + " Ensure you have permission to view this log."), nil
+			return mcp.NewToolResultError(err.Error() + " Ensure you have permission to view this log."), nil //nolint:nilerr // MCP tool error
 		}
 	}
 
@@ -289,23 +336,24 @@ func (s *MCPService) handleGetDailyLog(ctx context.Context, req mcp.CallToolRequ
 func (s *MCPService) handleListDailyLogs(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	userID, err := extractUserID(ctx)
 	if err != nil {
-		return mcp.NewToolResultError(err.Error() + " Create a Personal Access Token in Settings > My Account > Access Tokens."), nil
+		return mcp.NewToolResultError(err.Error() + " Create a Personal Access Token in Settings > My Account > Access Tokens."), nil //nolint:nilerr // MCP tool error
 	}
 
 	// Parse date range.
+	tz := req.GetString("timezone", "")
 	var startTs, endTs *int64
 	if raw := req.GetString("start_date", ""); raw != "" {
-		t, parseErr := time.Parse("2006-01-02", raw)
+		t, parseErr := parseDayStart(raw, tz)
 		if parseErr != nil {
-			return mcp.NewToolResultError("invalid start_date, expected YYYY-MM-DD (e.g., 2024-01-15)."), nil
+			return mcp.NewToolResultError("invalid start_date or timezone."), nil //nolint:nilerr // MCP tool error
 		}
 		ts := t.Unix()
 		startTs = &ts
 	}
 	if raw := req.GetString("end_date", ""); raw != "" {
-		t, parseErr := time.Parse("2006-01-02", raw)
+		t, parseErr := parseDayStart(raw, tz)
 		if parseErr != nil {
-			return mcp.NewToolResultError("invalid end_date, expected YYYY-MM-DD (e.g., 2024-01-15)."), nil
+			return mcp.NewToolResultError("invalid end_date or timezone."), nil //nolint:nilerr // MCP tool error
 		}
 		ts := t.Unix()
 		endTs = &ts
@@ -316,7 +364,7 @@ func (s *MCPService) handleListDailyLogs(ctx context.Context, req mcp.CallToolRe
 	if raw := req.GetString("creator", ""); raw != "" {
 		id, parseErr := parseCreatorName(raw)
 		if parseErr != nil {
-			return mcp.NewToolResultError(parseErr.Error() + ` Use format "users/<id>".`), nil
+			return mcp.NewToolResultError(parseErr.Error() + ` Use format "users/<id>".`), nil //nolint:nilerr // MCP tool error
 		}
 		creatorID = &id
 	}
